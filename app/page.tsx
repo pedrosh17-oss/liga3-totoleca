@@ -124,9 +124,10 @@ export default function Home() {
   const [jokerJogoId, setJokerJogoId] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
-  // Efeito Roleta (Sorteio)
+  // Efeito Roleta & GIF de Celebração
   const [isSorteando, setIsSorteando] = useState(false);
   const [roletaId, setRoletaId] = useState<string | null>(null);
+  const [mostrarGifCelebracao, setMostrarGifCelebracao] = useState(false);
 
   // Drag & Drop no Admin
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
@@ -195,7 +196,7 @@ export default function Home() {
     if (dApostas) setApostas(dApostas);
   }
 
-  // ROLETA DE SORTEIO
+  // ROLETA DE SORTEIO COM GIF DE CELEBRAÇÃO
   function sortearProximoApostador() {
     if (isSorteando) return;
 
@@ -208,8 +209,17 @@ export default function Home() {
       return;
     }
 
+    // AUMENTADO PARA 8000ms (8 segundos)
+    const TEMPO_EXIBICAO_GIF = 8000;
+
     if (pendentes.length === 1) {
-      abrirModalAposta(pendentes[0]);
+      setRoletaId(pendentes[0].id);
+      setMostrarGifCelebracao(true);
+      setTimeout(() => {
+        setMostrarGifCelebracao(false);
+        setRoletaId(null);
+        abrirModalAposta(pendentes[0]);
+      }, TEMPO_EXIBICAO_GIF);
       return;
     }
 
@@ -227,11 +237,14 @@ export default function Home() {
         const delay = 50 + (voltas * voltas * 0.8);
         setTimeout(tick, delay);
       } else {
+        // SORTEIO PAROU: MOSTRA O GIF CELEBRAÇÃO
+        setMostrarGifCelebracao(true);
         setTimeout(() => {
           setIsSorteando(false);
+          setMostrarGifCelebracao(false);
           setRoletaId(null);
           abrirModalAposta(pendentes[currentIdx]);
-        }, 1000);
+        }, TEMPO_EXIBICAO_GIF);
       }
     };
     
@@ -285,7 +298,6 @@ export default function Home() {
 
     setIsSaving(true);
     try {
-      // Se limpou tudo e confirmou, remove as apostas do jogador desta jornada
       if (numPalpites === 0) {
         const jogoIds = jogos.map(j => j.id);
         await supabase.from('apostas').delete().eq('jogador_id', jogadorApostar.id).in('jogo_id', jogoIds);
@@ -1118,6 +1130,27 @@ export default function Home() {
         )}
 
       </div>
+
+      {/* ================= OVERLAY GIF CELEBRAÇÃO ================= */}
+      {mostrarGifCelebracao && (
+        <div className="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-50 flex flex-col items-center justify-center p-4">
+          <div className="text-center space-y-4">
+            <h3 className="text-2xl sm:text-4xl font-black text-amber-400 drop-shadow-lg">
+              🥷 O ninja escolheu!
+            </h3>
+            <div className="relative border-4 border-amber-400 rounded-3xl overflow-hidden shadow-[0_0_50px_rgba(245,158,11,0.5)] max-w-xs sm:max-w-md mx-auto">
+              <img 
+                src="/celebracao.gif" 
+                alt="Celebração Ex-Jogador" 
+                className="w-full h-auto object-cover"
+                onError={(e) => {
+                  e.currentTarget.src = "https://media.giphy.com/media/l0HlUxcWRsq0LY4uI/giphy.gif";
+                }}
+              />
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ================= MODAL PIN ADMIN ================= */}
       {mostrarPinModal && (
