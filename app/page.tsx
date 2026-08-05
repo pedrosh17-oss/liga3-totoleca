@@ -1,10 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 
 // 🛡️ DICIONÁRIO DAS 20 EQUIPAS E RESPETIVOS EMBLEMAS (Na pasta /public/equipas/)
-// NOTA: Se as tuas imagens forem .jpg, basta mudares o '.png' para '.jpg' aqui em baixo!
 const EQUIPAS_MAP: Record<string, string> = {
   'AD Marco 09': '/equipas/marco09.png',
   'Atlético CP': '/equipas/atletico.png',
@@ -29,6 +28,79 @@ const EQUIPAS_MAP: Record<string, string> = {
 };
 
 const EQUIPAS_LISTA = Object.keys(EQUIPAS_MAP).sort();
+
+// Helper global para renderizar logo da equipa
+function renderBadge(nomeEquipa: string, size = 'w-6 h-6') {
+  const url = EQUIPAS_MAP[nomeEquipa];
+  if (!url) return <span className="text-xs">⚽</span>;
+  return <img src={url} alt={nomeEquipa} className={`${size} object-contain inline-block shrink-0 drop-shadow-md`} />;
+}
+
+// ----------------------------------------------------------------------
+// 🎯 COMPONENTE PERSONALIZADO: SELETOR DE EQUIPA COM PESQUISA E IMAGENS
+// ----------------------------------------------------------------------
+function SeletorEquipa({ value, onChange, placeholder, pequeno = false }: { value: string, onChange: (val: string) => void, placeholder: string, pequeno?: boolean }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [search, setSearch] = useState('');
+  
+  const equipasFiltradas = EQUIPAS_LISTA.filter(eq => eq.toLowerCase().includes(search.toLowerCase()));
+
+  return (
+    <div className="relative w-full">
+      {/* Botão de abrir/fechar */}
+      <div 
+        onClick={() => { setIsOpen(!isOpen); setSearch(''); }}
+        className={`w-full bg-slate-900 border border-slate-700 flex items-center justify-between cursor-pointer focus:border-emerald-500 outline-none transition-colors hover:border-slate-500 ${pequeno ? 'p-2 rounded-lg text-xs font-bold' : 'p-4 rounded-xl text-lg font-bold'}`}
+      >
+        {value ? (
+          <div className="flex items-center gap-2">
+            {renderBadge(value, pequeno ? 'w-4 h-4' : 'w-6 h-6')}
+            <span className="truncate text-white">{value}</span>
+          </div>
+        ) : (
+          <span className="text-slate-500 truncate">{placeholder}</span>
+        )}
+        <span className={`text-slate-500 ml-2 transition-transform ${isOpen ? 'rotate-180' : ''}`}>▼</span>
+      </div>
+
+      {/* Dropdown Menu */}
+      {isOpen && (
+        <>
+          {/* Overlay invisível para fechar ao clicar fora */}
+          <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)}></div>
+          
+          <div className="absolute top-full left-0 w-full mt-2 bg-slate-800 border border-slate-700 rounded-xl shadow-2xl z-50 overflow-hidden flex flex-col min-w-[220px]">
+            <div className="p-2 border-b border-slate-700 bg-slate-900">
+              <input 
+                type="text" 
+                placeholder="🔍 Pesquisar equipa..." 
+                className="w-full bg-slate-950 border border-slate-700 p-2.5 rounded-lg text-sm font-bold text-white outline-none focus:border-emerald-500 placeholder-slate-500"
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                autoFocus
+              />
+            </div>
+            <div className="max-h-56 overflow-y-auto overscroll-contain">
+              {equipasFiltradas.length > 0 ? equipasFiltradas.map(eq => (
+                <div 
+                  key={eq}
+                  onClick={() => { onChange(eq); setIsOpen(false); }}
+                  className={`flex items-center gap-3 p-3 hover:bg-slate-700 cursor-pointer transition border-b border-slate-700/50 last:border-0 ${value === eq ? 'bg-emerald-900/30 text-emerald-400' : 'text-slate-200'}`}
+                >
+                  {renderBadge(eq, 'w-6 h-6')}
+                  <span className="font-bold text-sm truncate">{eq}</span>
+                </div>
+              )) : (
+                <div className="p-4 text-center text-slate-500 text-sm font-bold">Sem resultados</div>
+              )}
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+// ----------------------------------------------------------------------
 
 export default function Home() {
   const [abaAtiva, setAbaAtiva] = useState<'apostar' | 'historico' | 'ranking' | 'estatisticas' | 'admin'>('apostar');
@@ -69,13 +141,6 @@ export default function Home() {
   const [jogoEditId, setJogoEditId] = useState<string | null>(null);
   const [editEquipaCasa, setEditEquipaCasa] = useState('');
   const [editEquipaFora, setEditEquipaFora] = useState('');
-
-  // Helper para renderizar logo da equipa (busca o ficheiro que colocaste na pasta public)
-  function renderBadge(nomeEquipa: string, size = 'w-6 h-6') {
-    const url = EQUIPAS_MAP[nomeEquipa];
-    if (!url) return <span className="text-xs">⚽</span>;
-    return <img src={url} alt={nomeEquipa} className={`${size} object-contain inline-block shrink-0 drop-shadow-md`} />;
-  }
 
   // 1. CARREGAR DADOS INICIAIS
   useEffect(() => {
@@ -799,26 +864,22 @@ export default function Home() {
                     <span className="text-slate-500">Jornada {jornadaAtiva.numero}</span>
                   </h3>
                   
+                  {/* SELETORES DE EQUIPA - CUSTOMIZADOS */}
                   <div className="space-y-4">
-                    <select 
-                      className="w-full bg-slate-900 border border-slate-700 p-4 rounded-xl text-lg font-bold focus:border-emerald-500 outline-none appearance-none" 
+                    <SeletorEquipa 
+                      placeholder="Selecionar Equipa da Casa..." 
                       value={equipaCasa} 
-                      onChange={e => setEquipaCasa(e.target.value)}
-                    >
-                      <option value="" disabled>Equipa da Casa</option>
-                      {EQUIPAS_LISTA.map(eq => <option key={eq} value={eq}>{eq}</option>)}
-                    </select>
-
-                    <select 
-                      className="w-full bg-slate-900 border border-slate-700 p-4 rounded-xl text-lg font-bold focus:border-emerald-500 outline-none appearance-none" 
+                      onChange={setEquipaCasa} 
+                    />
+                    <SeletorEquipa 
+                      placeholder="Selecionar Equipa de Fora..." 
                       value={equipaFora} 
-                      onChange={e => setEquipaFora(e.target.value)}
-                    >
-                      <option value="" disabled>Equipa de Fora</option>
-                      {EQUIPAS_LISTA.map(eq => <option key={eq} value={eq}>{eq}</option>)}
-                    </select>
+                      onChange={setEquipaFora} 
+                    />
                     
-                    <button onClick={adicionarJogo} className="w-full bg-emerald-500 hover:bg-emerald-400 text-slate-900 font-black p-4 rounded-xl transition text-lg mt-2">+ Inserir Jogo na Grelha</button>
+                    <button onClick={adicionarJogo} className="w-full bg-emerald-500 hover:bg-emerald-400 text-slate-900 font-black p-4 rounded-xl transition text-lg mt-2 shadow-lg">
+                      + Inserir Jogo na Grelha
+                    </button>
                   </div>
                 </div>
               )}
@@ -839,29 +900,22 @@ export default function Home() {
                       return (
                         <div key={jogo.id} className="bg-slate-900 p-4 rounded-xl border border-slate-800 space-y-3">
                           {estaEditando ? (
-                            <div className="flex gap-2 items-center">
-                              <select 
-                                value={editEquipaCasa} 
-                                onChange={e => setEditEquipaCasa(e.target.value)}
-                                className="flex-1 bg-slate-950 border border-slate-700 p-2 rounded text-xs font-bold appearance-none"
-                              >
-                                {EQUIPAS_LISTA.map(eq => <option key={eq} value={eq}>{eq}</option>)}
-                              </select>
+                            <div className="flex gap-2 items-center w-full">
                               
-                              <span className="text-slate-500 text-xs font-bold">v</span>
+                              <div className="flex-1 min-w-0">
+                                <SeletorEquipa value={editEquipaCasa} onChange={setEditEquipaCasa} placeholder="Casa" pequeno />
+                              </div>
                               
-                              <select 
-                                value={editEquipaFora} 
-                                onChange={e => setEditEquipaFora(e.target.value)}
-                                className="flex-1 bg-slate-950 border border-slate-700 p-2 rounded text-xs font-bold appearance-none"
-                              >
-                                {EQUIPAS_LISTA.map(eq => <option key={eq} value={eq}>{eq}</option>)}
-                              </select>
+                              <span className="text-slate-500 text-xs font-black px-1">V</span>
+                              
+                              <div className="flex-1 min-w-0">
+                                <SeletorEquipa value={editEquipaFora} onChange={setEditEquipaFora} placeholder="Fora" pequeno />
+                              </div>
 
-                              <button onClick={() => guardarEdicaoJogo(jogo.id)} className="bg-emerald-500 text-slate-950 px-3 py-2 rounded text-xs font-black">
+                              <button onClick={() => guardarEdicaoJogo(jogo.id)} className="bg-emerald-500 text-slate-950 px-3 py-2 rounded-lg text-sm font-black shadow-md hover:bg-emerald-400">
                                 💾
                               </button>
-                              <button onClick={() => setJogoEditId(null)} className="bg-slate-800 text-slate-400 px-3 py-2 rounded text-xs">
+                              <button onClick={() => setJogoEditId(null)} className="bg-slate-800 text-slate-400 px-3 py-2 rounded-lg text-sm font-bold hover:bg-slate-700">
                                 ✕
                               </button>
                             </div>
@@ -869,10 +923,10 @@ export default function Home() {
                             <div className="flex items-center justify-between">
                               <div className="flex items-center gap-2 font-bold text-slate-300">
                                 {renderBadge(jogo.equipa_casa, 'w-6 h-6')}
-                                <span>{jogo.equipa_casa}</span>
+                                <span className="hidden sm:inline">{jogo.equipa_casa}</span>
                                 <span className="text-slate-500 text-xs mx-1">v</span>
                                 {renderBadge(jogo.equipa_fora, 'w-6 h-6')}
-                                <span>{jogo.equipa_fora}</span>
+                                <span className="hidden sm:inline">{jogo.equipa_fora}</span>
                               </div>
                               
                               <div className="flex items-center gap-2">
@@ -884,7 +938,7 @@ export default function Home() {
                                   ))}
                                 </div>
                                 
-                                <button onClick={() => iniciarEdicaoJogo(jogo)} className="text-slate-400 hover:text-white p-2 bg-slate-800 hover:bg-slate-700 rounded-lg transition" title="Editar Equipas">
+                                <button onClick={() => iniciarEdicaoJogo(jogo)} className="text-slate-400 hover:text-white p-2 bg-slate-800 hover:bg-slate-700 rounded-lg transition ml-2" title="Editar Equipas">
                                   ✏️
                                 </button>
                                 <button onClick={() => apagarJogo(jogo.id)} className="text-red-400 hover:text-red-300 p-2 bg-red-500/10 hover:bg-red-500/20 rounded-lg transition" title="Apagar Jogo">
@@ -1000,12 +1054,12 @@ export default function Home() {
                     <div className="flex-1 text-2xl font-bold flex items-center gap-3">
                       <div className="flex items-center gap-2">
                         {renderBadge(jogo.equipa_casa, 'w-10 h-10')}
-                        <span className="text-white">{jogo.equipa_casa}</span>
+                        <span className="text-white hidden sm:inline">{jogo.equipa_casa}</span>
                       </div>
                       <span className="text-slate-600 mx-2 text-lg">vs</span>
                       <div className="flex items-center gap-2">
                         {renderBadge(jogo.equipa_fora, 'w-10 h-10')}
-                        <span className="text-white">{jogo.equipa_fora}</span>
+                        <span className="text-white hidden sm:inline">{jogo.equipa_fora}</span>
                       </div>
                     </div>
 
