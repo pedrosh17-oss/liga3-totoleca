@@ -227,7 +227,7 @@ export default function Home() {
   const [isAdminAuth, setIsAdminAuth] = useState(false);
   const [pinInput, setPinInput] = useState('');
   const [mostrarPinModal, setMostrarPinModal] = useState(false);
-  const PIN_CORRETO = '1234';
+  const PIN_CORRETO = '2627';
 
   // Modal de Aposta
   const [jogadorApostar, setJogadorApostar] = useState<any | null>(null);
@@ -803,13 +803,21 @@ export default function Home() {
   return (
     <main className="min-h-screen bg-slate-900 text-slate-100 font-sans selection:bg-emerald-500 selection:text-slate-900">
       
-      {/* 📱 TOP NAVIGATION RESPONSIVA E SEM CORTE */}
+      {/* 📱 TOP NAVIGATION RESPONSIVA E COM IMAGEM DO LOGO */}
       <header className="bg-slate-950 border-b border-slate-800 sticky top-0 z-40 shadow-xl">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 sm:py-4 flex flex-col md:flex-row items-center justify-between gap-3 sm:gap-4">
           
-          <div className="flex items-center gap-3 shrink-0">
-            <span className="text-3xl">⚽</span>
-            <h1 className="text-2xl font-black tracking-wider text-white">TOTO<span className="text-emerald-500">LEÇA</span></h1>
+          {/* LOGOTIPO COMPLETO EM IMAGEM */}
+          <div className="flex items-center shrink-0 cursor-pointer" onClick={() => setAbaAtiva('apostar')}>
+            <img 
+              src="/logo.png" 
+              alt="Totoleça" 
+              className="h-10 sm:h-12 object-contain" 
+              onError={(e) => {
+                // Fallback para quando o logo for guardado como .jpg
+                e.currentTarget.src = "/logo.jpg";
+              }}
+            />
           </div>
           
           <nav className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto max-w-full w-full md:w-auto pb-1 md:pb-0 justify-start md:justify-end [&::-webkit-scrollbar]:hidden">
