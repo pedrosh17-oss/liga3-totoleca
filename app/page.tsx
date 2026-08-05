@@ -27,6 +27,19 @@ const EQUIPAS_MAP: Record<string, string> = {
   'Vitória Sernache': '/equipas/vitoriasernache.png'
 };
 
+// 🥷 DICIONÁRIO DE ANIMACÕES WEBP DOS JOGADORES (Na pasta /public/gifs/)
+const JOGADORES_GIF_MAP: Record<string, string> = {
+  'André': '/gifs/andre.webp',
+  'Coutinho': '/gifs/coutinho.webp',
+  'Craveiro': '/gifs/craveiro.webp',
+  'Duarte': '/gifs/duarte.webp',
+  'Miguel': '/gifs/miguel.webp',
+  'Oliveira': '/gifs/oliveira.webp',
+  'Paulo': '/gifs/paulo.webp',
+  'Pinto': '/gifs/pinto.webp',
+  'Presidente': '/gifs/presidente.webp',
+};
+
 const EQUIPAS_LISTA = Object.keys(EQUIPAS_MAP).sort();
 
 // Helper global para renderizar logo da equipa
@@ -47,7 +60,6 @@ function SeletorEquipa({ value, onChange, placeholder, pequeno = false }: { valu
 
   return (
     <div className="relative w-full">
-      {/* Botão de abrir/fechar */}
       <div 
         onClick={() => { setIsOpen(!isOpen); setSearch(''); }}
         className={`w-full bg-slate-900 border border-slate-700 flex items-center justify-between cursor-pointer focus:border-emerald-500 outline-none transition-colors hover:border-slate-500 ${pequeno ? 'p-2 sm:p-3 rounded-lg text-xs sm:text-sm font-bold' : 'p-4 rounded-xl text-base sm:text-lg font-bold'}`}
@@ -63,7 +75,6 @@ function SeletorEquipa({ value, onChange, placeholder, pequeno = false }: { valu
         <span className={`text-slate-500 ml-2 shrink-0 transition-transform ${isOpen ? 'rotate-180' : ''}`}>▼</span>
       </div>
 
-      {/* Dropdown Menu */}
       {isOpen && (
         <>
           <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)}></div>
@@ -124,10 +135,11 @@ export default function Home() {
   const [jokerJogoId, setJokerJogoId] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
-  // Efeito Roleta & GIF de Celebração
+  // Efeito Roleta & GIF de Celebração Personalizado
   const [isSorteando, setIsSorteando] = useState(false);
   const [roletaId, setRoletaId] = useState<string | null>(null);
   const [mostrarGifCelebracao, setMostrarGifCelebracao] = useState(false);
+  const [jogadorSorteadoInfo, setJogadorSorteadoInfo] = useState<any | null>(null);
 
   // Drag & Drop no Admin
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
@@ -136,6 +148,7 @@ export default function Home() {
   const [novoJogadorNome, setNovoJogadorNome] = useState('');
   const [novoJogadorFoto, setNovoJogadorFoto] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadingFotoId, setUploadingFotoId] = useState<string | null>(null);
   const [novaJornadaNum, setNovaJornadaNum] = useState<number | ''>('');
   const [equipaCasa, setEquipaCasa] = useState('');
   const [equipaFora, setEquipaFora] = useState('');
@@ -196,7 +209,7 @@ export default function Home() {
     if (dApostas) setApostas(dApostas);
   }
 
-  // ROLETA DE SORTEIO COM GIF DE CELEBRAÇÃO
+  // ROLETA DE SORTEIO COM GIF DE CELEBRAÇÃO PERSONALIZADO
   function sortearProximoApostador() {
     if (isSorteando) return;
 
@@ -209,16 +222,19 @@ export default function Home() {
       return;
     }
 
-    // AUMENTADO PARA 8000ms (8 segundos)
-    const TEMPO_EXIBICAO_GIF = 8000;
+    const TEMPO_EXIBICAO_GIF = 8000; // 8 Segundos
 
     if (pendentes.length === 1) {
-      setRoletaId(pendentes[0].id);
+      const sorteado = pendentes[0];
+      setRoletaId(sorteado.id);
+      setJogadorSorteadoInfo(sorteado);
       setMostrarGifCelebracao(true);
+      
       setTimeout(() => {
         setMostrarGifCelebracao(false);
         setRoletaId(null);
-        abrirModalAposta(pendentes[0]);
+        setJogadorSorteadoInfo(null);
+        abrirModalAposta(sorteado);
       }, TEMPO_EXIBICAO_GIF);
       return;
     }
@@ -237,18 +253,30 @@ export default function Home() {
         const delay = 50 + (voltas * voltas * 0.8);
         setTimeout(tick, delay);
       } else {
-        // SORTEIO PAROU: MOSTRA O GIF CELEBRAÇÃO
+        const sorteado = pendentes[currentIdx];
+        setJogadorSorteadoInfo(sorteado);
         setMostrarGifCelebracao(true);
+
         setTimeout(() => {
           setIsSorteando(false);
           setMostrarGifCelebracao(false);
           setRoletaId(null);
-          abrirModalAposta(pendentes[currentIdx]);
+          setJogadorSorteadoInfo(null);
+          abrirModalAposta(sorteado);
         }, TEMPO_EXIBICAO_GIF);
       }
     };
     
     tick();
+  }
+
+  // Helper para procurar a animação WEBP do jogador
+  function obterGifDoJogador(nomeJogador: string) {
+    if (JOGADORES_GIF_MAP[nomeJogador]) {
+      return JOGADORES_GIF_MAP[nomeJogador];
+    }
+    const nomeLimpo = nomeJogador.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, '');
+    return `/gifs/${nomeLimpo}.webp`;
   }
 
   // 2. NAVEGAÇÃO & PIN ADMIN
@@ -365,6 +393,29 @@ export default function Home() {
     
     setIsUploading(false);
     carregarDadosGerais();
+  }
+
+  // ADICIONAR / ALTERAR FOTO DE UM JOGADOR JÁ EXISTENTE
+  async function atualizarFotoJogador(jogadorId: string, ficheiro: File) {
+    if (!ficheiro) return;
+    setUploadingFotoId(jogadorId);
+
+    const fileExt = ficheiro.name.split('.').pop();
+    const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from('avatares')
+      .upload(fileName, ficheiro);
+
+    if (!uploadError) {
+      const { data } = supabase.storage.from('avatares').getPublicUrl(fileName);
+      await supabase.from('jogadores').update({ foto_url: data.publicUrl }).eq('id', jogadorId);
+      await carregarDadosGerais();
+    } else {
+      alert('Erro ao carregar fotografia.');
+    }
+
+    setUploadingFotoId(null);
   }
 
   async function apagarJogador(id: string, nome: string) {
@@ -1008,7 +1059,6 @@ export default function Home() {
                               {/* LINHA 1: ARRASTAR + EQUIPAS EM CONFRONTO */}
                               <div className="flex items-center justify-between bg-slate-950/60 p-3 rounded-lg border border-slate-800/80 gap-2">
                                 
-                                {/* Ícone para Arrastar */}
                                 <div className="cursor-grab active:cursor-grabbing text-slate-600 hover:text-amber-400 text-lg px-1 select-none" title="Clique e arraste para mudar a ordem">
                                   ☰
                                 </div>
@@ -1028,7 +1078,6 @@ export default function Home() {
 
                               {/* LINHA 2: RESULTADOS E FERRAMENTAS */}
                               <div className="flex items-center justify-between gap-2 pt-1">
-                                {/* Botões de Resultado 1 X 2 */}
                                 <div className="flex items-center gap-1.5">
                                   <span className="text-[10px] uppercase tracking-wider font-bold text-slate-500 hidden sm:inline">Oficial:</span>
                                   <div className="flex gap-1 bg-slate-950 p-1 rounded-lg border border-slate-800">
@@ -1048,7 +1097,6 @@ export default function Home() {
                                   </div>
                                 </div>
 
-                                {/* Barra de Ferramentas (Editar, Apagar) */}
                                 <div className="flex items-center gap-1 bg-slate-950 p-1 rounded-lg border border-slate-800">
                                   <button 
                                     onClick={() => iniciarEdicaoJogo(jogo)} 
@@ -1080,6 +1128,7 @@ export default function Home() {
               <div className="bg-slate-800 p-6 sm:p-8 rounded-2xl border border-slate-700 shadow-xl space-y-6">
                 <h3 className="text-lg sm:text-xl font-black text-emerald-400 uppercase tracking-widest">👤 Gerir Amigos do Grupo</h3>
                 
+                {/* Form Novo Jogador */}
                 <div className="space-y-4">
                   <input type="text" placeholder="Nome do Jogador" className="w-full bg-slate-900 border border-slate-700 p-3 sm:p-4 rounded-xl text-base sm:text-lg font-bold focus:border-emerald-500 outline-none" value={novoJogadorNome} onChange={e => setNovoJogadorNome(e.target.value)} />
                   <input 
@@ -1098,25 +1147,48 @@ export default function Home() {
                   </button>
                 </div>
 
+                {/* Lista de Amigos Registados com Botão de Alterar Fotografia */}
                 {jogadores.length > 0 && (
                   <div className="pt-4 border-t border-slate-700/50">
                     <span className="text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider block mb-3">Amigos Registados:</span>
                     <div className="space-y-2">
                       {jogadores.map(j => (
                         <div key={j.id} className="flex items-center justify-between bg-slate-900 p-3 rounded-xl border border-slate-800">
-                          <div className="flex items-center gap-3">
+                          <div className="flex items-center gap-3 min-w-0">
                             {j.foto_url ? (
-                              <img src={j.foto_url} alt={j.nome} className="w-8 h-8 rounded-full object-cover shrink-0" />
+                              <img src={j.foto_url} alt={j.nome} className="w-10 h-10 rounded-full object-cover shrink-0 border-2 border-emerald-500/50" />
                             ) : (
-                              <div className="w-8 h-8 bg-slate-700 rounded-full flex items-center justify-center font-bold text-slate-300 text-xs shrink-0">
+                              <div className="w-10 h-10 bg-slate-700 rounded-full flex items-center justify-center font-bold text-slate-300 text-sm shrink-0">
                                 {j.nome[0]}
                               </div>
                             )}
                             <span className="font-bold text-slate-200 text-sm sm:text-base truncate">{j.nome}</span>
                           </div>
-                          <button onClick={() => apagarJogador(j.id, j.nome)} className="text-red-400 hover:text-red-300 p-2 bg-red-500/10 hover:bg-red-500/20 rounded-lg transition" title="Apagar Jogador">
-                            🗑️
-                          </button>
+
+                          <div className="flex items-center gap-2 shrink-0">
+                            <input 
+                              type="file" 
+                              accept="image/*"
+                              id={`foto-edit-${j.id}`}
+                              className="hidden"
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) atualizarFotoJogador(j.id, file);
+                              }}
+                            />
+                            
+                            <label 
+                              htmlFor={`foto-edit-${j.id}`}
+                              className={`p-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg transition cursor-pointer flex items-center justify-center ${uploadingFotoId === j.id ? 'animate-pulse' : ''}`}
+                              title="Adicionar / Alterar Fotografia"
+                            >
+                              {uploadingFotoId === j.id ? '⏳' : '📷'}
+                            </label>
+
+                            <button onClick={() => apagarJogador(j.id, j.nome)} className="text-red-400 hover:text-red-300 p-2 bg-red-500/10 hover:bg-red-500/20 rounded-lg transition" title="Apagar Jogador">
+                              🗑️
+                            </button>
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -1131,20 +1203,20 @@ export default function Home() {
 
       </div>
 
-      {/* ================= OVERLAY GIF CELEBRAÇÃO ================= */}
-      {mostrarGifCelebracao && (
+      {/* ================= OVERLAY ANIMADO PERSONALIZADO (APENAS NOME) ================= */}
+      {mostrarGifCelebracao && jogadorSorteadoInfo && (
         <div className="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-50 flex flex-col items-center justify-center p-4">
           <div className="text-center space-y-4">
-            <h3 className="text-2xl sm:text-4xl font-black text-amber-400 drop-shadow-lg">
-              🥷 O ninja escolheu!
+            <h3 className="text-3xl sm:text-5xl font-black text-emerald-400 drop-shadow-lg uppercase tracking-wider">
+              {jogadorSorteadoInfo.nome}
             </h3>
             <div className="relative border-4 border-amber-400 rounded-3xl overflow-hidden shadow-[0_0_50px_rgba(245,158,11,0.5)] max-w-xs sm:max-w-md mx-auto">
               <img 
-                src="/celebracao.gif" 
-                alt="Celebração Ex-Jogador" 
-                className="w-full h-auto object-cover"
+                src={obterGifDoJogador(jogadorSorteadoInfo.nome)} 
+                alt={`Animação ${jogadorSorteadoInfo.nome}`} 
+                className="w-full h-auto object-cover max-h-[60vh]"
                 onError={(e) => {
-                  e.currentTarget.src = "https://media.giphy.com/media/l0HlUxcWRsq0LY4uI/giphy.gif";
+                  e.currentTarget.src = "/celebracao.gif";
                 }}
               />
             </div>
