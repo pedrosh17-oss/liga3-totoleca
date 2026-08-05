@@ -27,6 +27,17 @@ const EQUIPAS_MAP: Record<string, string> = {
   'Vitória Sernache': '/equipas/vitoriasernache.png'
 };
 
+// ⚽ DIVISÃO OFICIAL DAS DUAS SÉRIES (10 EQUIPAS CADA)
+const SERIE_A = [
+  'AD Marco 09', 'Fafe', 'Leça FC', 'Paços de Ferreira', 'S. João Ver',
+  'Trofense', 'USC Paredes', 'Varzim', 'Vianense', 'Vitória SC B'
+];
+
+const SERIE_B = [
+  'Atlético CP', 'Belenenses', 'Caldas SC', 'CD Mafra', 'Louletano',
+  'Lusitano GC', 'SC Covilhã', 'U. Santarém', 'UD Oliveirense', 'Vitória Sernache'
+];
+
 // 🥷 DICIONÁRIO DE ANIMACÕES WEBP DOS JOGADORES (Na pasta /public/gifs/)
 const JOGADORES_GIF_MAP: Record<string, string> = {
   'André': '/gifs/andre.webp',
@@ -110,10 +121,97 @@ function SeletorEquipa({ value, onChange, placeholder, pequeno = false }: { valu
     </div>
   );
 }
+
 // ----------------------------------------------------------------------
+// 👤 COMPONENTE PERSONALIZADO: SELETOR DE APOSTADOR / JOGADOR COM FOTO
+// ----------------------------------------------------------------------
+function SeletorJogador({ value, onChange, jogadores }: { value: string, onChange: (val: string) => void, jogadores: any[] }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [search, setSearch] = useState('');
+
+  const jogadorSelecionado = jogadores.find(j => j.id === value);
+  const jogadoresFiltrados = jogadores.filter(j => j.nome.toLowerCase().includes(search.toLowerCase()));
+
+  return (
+    <div className="relative w-full sm:w-60">
+      <div 
+        onClick={() => { setIsOpen(!isOpen); setSearch(''); }}
+        className="w-full bg-slate-900 border border-slate-700 flex items-center justify-between cursor-pointer focus:border-emerald-500 outline-none transition-colors hover:border-slate-500 p-2.5 rounded-xl text-sm font-bold"
+      >
+        {value === 'real' ? (
+          <div className="flex items-center gap-2 overflow-hidden">
+            <span className="w-6 h-6 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 flex items-center justify-center text-xs font-black shrink-0">⚽</span>
+            <span className="truncate text-white">Real</span>
+          </div>
+        ) : jogadorSelecionado ? (
+          <div className="flex items-center gap-2 overflow-hidden">
+            {jogadorSelecionado.foto_url ? (
+              <img src={jogadorSelecionado.foto_url} alt={jogadorSelecionado.nome} className="w-6 h-6 rounded-full object-cover shrink-0 border border-emerald-500/50" />
+            ) : (
+              <div className="w-6 h-6 bg-slate-700 rounded-full flex items-center justify-center font-bold text-slate-300 text-xs shrink-0">
+                {jogadorSelecionado.nome[0]}
+              </div>
+            )}
+            <span className="truncate text-white">{jogadorSelecionado.nome}</span>
+          </div>
+        ) : (
+          <span className="text-slate-500 truncate">Selecionar...</span>
+        )}
+        <span className={`text-slate-500 ml-2 shrink-0 transition-transform ${isOpen ? 'rotate-180' : ''}`}>▼</span>
+      </div>
+
+      {isOpen && (
+        <>
+          <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)}></div>
+          
+          <div className="absolute top-full right-0 w-full mt-2 bg-slate-800 border border-slate-700 rounded-xl shadow-2xl z-50 overflow-hidden flex flex-col min-w-[200px]">
+            <div className="p-2 border-b border-slate-700 bg-slate-900">
+              <input 
+                type="text" 
+                placeholder="🔍 Pesquisar amigo..." 
+                className="w-full bg-slate-950 border border-slate-700 p-2 rounded-lg text-xs font-bold text-white outline-none focus:border-emerald-500 placeholder-slate-500"
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                autoFocus
+              />
+            </div>
+            <div className="max-h-56 overflow-y-auto overscroll-contain">
+              {/* OPÇÃO REAL */}
+              <div 
+                onClick={() => { onChange('real'); setIsOpen(false); }}
+                className={`flex items-center gap-3 p-2.5 hover:bg-slate-700 cursor-pointer transition border-b border-slate-700/50 ${value === 'real' ? 'bg-emerald-900/30 text-emerald-400' : 'text-slate-200'}`}
+              >
+                <span className="w-6 h-6 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 flex items-center justify-center text-xs font-black shrink-0">⚽</span>
+                <span className="font-bold text-sm truncate">Real</span>
+              </div>
+
+              {/* LISTA DE JOGADORES */}
+              {jogadoresFiltrados.map(j => (
+                <div 
+                  key={j.id}
+                  onClick={() => { onChange(j.id); setIsOpen(false); }}
+                  className={`flex items-center gap-3 p-2.5 hover:bg-slate-700 cursor-pointer transition border-b border-slate-700/50 last:border-0 ${value === j.id ? 'bg-emerald-900/30 text-emerald-400' : 'text-slate-200'}`}
+                >
+                  {j.foto_url ? (
+                    <img src={j.foto_url} alt={j.nome} className="w-6 h-6 rounded-full object-cover shrink-0 border border-emerald-500/50" />
+                  ) : (
+                    <div className="w-6 h-6 bg-slate-700 rounded-full flex items-center justify-center font-bold text-slate-300 text-xs shrink-0">
+                      {j.nome[0]}
+                    </div>
+                  )}
+                  <span className="font-bold text-sm truncate">{j.nome}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
 
 export default function Home() {
-  const [abaAtiva, setAbaAtiva] = useState<'apostar' | 'historico' | 'ranking' | 'estatisticas' | 'admin'>('apostar');
+  const [abaAtiva, setAbaAtiva] = useState<'apostar' | 'historico' | 'ranking' | 'estatisticas' | 'classificacao' | 'admin'>('apostar');
   
   // Dados Principais
   const [jogadores, setJogadores] = useState<any[]>([]);
@@ -122,6 +220,10 @@ export default function Home() {
   const [jogos, setJogos] = useState<any[]>([]);
   const [apostas, setApostas] = useState<any[]>([]);
   const [todosJogos, setTodosJogos] = useState<any[]>([]);
+
+  // Estado para o Simulador de Liga
+  const [jogadorSimuladoId, setJogadorSimuladoId] = useState<string | 'real'>('real');
+  const [serieAtivaView, setSerieAtivaView] = useState<'A' | 'B'>('A');
 
   // Autenticação de Admin (PIN)
   const [isAdminAuth, setIsAdminAuth] = useState(false);
@@ -158,7 +260,6 @@ export default function Home() {
   const [editEquipaCasa, setEditEquipaCasa] = useState('');
   const [editEquipaFora, setEditEquipaFora] = useState('');
 
-  // VARIÁVEL DE CONTROLO DE JORNADA FECHADA
   const isJornadaFechada = jornadaAtiva?.estado === 'fechada';
 
   // 1. CARREGAR DADOS INICIAIS
@@ -224,11 +325,8 @@ export default function Home() {
     if (!confirm(confirmacao)) return;
 
     await supabase.from('jornadas').update({ estado: novoEstado }).eq('id', jornadaAtiva.id);
-    
-    // Atualiza localmente
     setJornadaAtiva({ ...jornadaAtiva, estado: novoEstado });
     
-    // Atualiza lista completa no background
     const { data: dJornadas } = await supabase.from('jornadas').select('*').order('numero', { ascending: false });
     if (dJornadas) setJornadas(dJornadas);
   }
@@ -246,7 +344,7 @@ export default function Home() {
       return;
     }
 
-    const TEMPO_EXIBICAO_GIF = 8000; // 8 Segundos
+    const TEMPO_EXIBICAO_GIF = 8000;
 
     if (pendentes.length === 1) {
       const sorteado = pendentes[0];
@@ -294,7 +392,6 @@ export default function Home() {
     tick();
   }
 
-  // Helper para procurar a animação WEBP do jogador
   function obterGifDoJogador(nomeJogador: string) {
     if (JOGADORES_GIF_MAP[nomeJogador]) {
       return JOGADORES_GIF_MAP[nomeJogador];
@@ -304,7 +401,7 @@ export default function Home() {
   }
 
   // 2. NAVEGAÇÃO & PIN ADMIN
-  function selecionarAba(aba: 'apostar' | 'historico' | 'ranking' | 'estatisticas' | 'admin') {
+  function selecionarAba(aba: 'apostar' | 'historico' | 'ranking' | 'estatisticas' | 'classificacao' | 'admin') {
     if (aba === 'admin' && !isAdminAuth) {
       setMostrarPinModal(true);
       return;
@@ -427,7 +524,6 @@ export default function Home() {
     carregarDadosGerais();
   }
 
-  // ADICIONAR / ALTERAR FOTO DE UM JOGADOR JÁ EXISTENTE
   async function atualizarFotoJogador(jogadorId: string, ficheiro: File) {
     if (!ficheiro) return;
     setUploadingFotoId(jogadorId);
@@ -514,7 +610,6 @@ export default function Home() {
     }
   }
 
-  // REORDENAR POR DRAG & DROP
   const handleDragStart = (e: React.DragEvent, index: number) => {
     setDraggedIndex(index);
     e.dataTransfer.effectAllowed = 'move';
@@ -547,7 +642,6 @@ export default function Home() {
     }
   };
 
-  // MARCAR RESULTADO COM SUPORTE A ALTERNAR (TOGGLE)
   async function marcarResultadoFinal(jogoId: string, resultado: '1' | 'X' | '2') {
     const jogoAtual = jogos.find(j => j.id === jogoId);
     const novoResultado = jogoAtual?.resultado_final === resultado ? null : resultado;
@@ -556,7 +650,7 @@ export default function Home() {
     if (jornadaAtiva?.id) carregarJogosEApostas(jornadaAtiva.id);
   }
 
-  // 5. CÁLCULO DE PONTOS E ESTATÍSTICAS
+  // 5. CÁLCULO DE PONTOS TOTOLEÇA E ESTATÍSTICAS
   const calcularEstatisticas = () => {
     let globalBestJokerTeam = '-';
     let globalBestJokerPts = 0;
@@ -653,6 +747,61 @@ export default function Home() {
   const estatisticas = calcularEstatisticas();
   const ranking = estatisticas.statsPorJogador;
 
+  // 6. CÁLCULO DA CLASSIFICAÇÃO REAL E IMAGINÁRIA DA LIGA DA VERDADE
+  function calcularTabelaLiga(equipasLista: string[], jogadorId?: string) {
+    const tabela: Record<string, { nome: string; j: number; v: number; e: number; d: number; pts: number }> = {};
+
+    equipasLista.forEach(eq => {
+      tabela[eq] = { nome: eq, j: 0, v: 0, e: 0, d: 0, pts: 0 };
+    });
+
+    todosJogos.forEach(jogo => {
+      if (!tabela[jogo.equipa_casa] && !tabela[jogo.equipa_fora]) return;
+
+      let resultadoAconsiderar = jogo.resultado_final;
+
+      if (jogadorId) {
+        const aposta = apostas.find(a => a.jogador_id === jogadorId && a.jogo_id === jogo.id);
+        if (aposta?.palpite) {
+          resultadoAconsiderar = aposta.palpite;
+        }
+      }
+
+      if (resultadoAconsiderar) {
+        const casa = tabela[jogo.equipa_casa];
+        const fora = tabela[jogo.equipa_fora];
+
+        if (casa) casa.j++;
+        if (fora) fora.j++;
+
+        if (resultadoAconsiderar === '1') {
+          if (casa) { casa.v++; casa.pts += 3; }
+          if (fora) { fora.d++; }
+        } else if (resultadoAconsiderar === 'X') {
+          if (casa) { casa.e++; casa.pts += 1; }
+          if (fora) { fora.e++; fora.pts += 1; }
+        } else if (resultadoAconsiderar === '2') {
+          if (fora) { fora.v++; fora.pts += 3; }
+          if (casa) { casa.d++; }
+        }
+      }
+    });
+
+    return Object.values(tabela).sort((a, b) => b.pts - a.pts || b.v - a.v);
+  }
+
+  // Tabelas Reais Oficiais
+  const tabelaRealSerieA = calcularTabelaLiga(SERIE_A);
+  const tabelaRealSerieB = calcularTabelaLiga(SERIE_B);
+
+  // Tabela Ativa para Exibição
+  const equipasDaSerieAtual = serieAtivaView === 'A' ? SERIE_A : SERIE_B;
+  const tabelaRealAtual = serieAtivaView === 'A' ? tabelaRealSerieA : tabelaRealSerieB;
+  
+  const tabelaSimuladaAtual = jogadorSimuladoId === 'real' 
+    ? tabelaRealAtual 
+    : calcularTabelaLiga(equipasDaSerieAtual, jogadorSimuladoId);
+
   return (
     <main className="min-h-screen bg-slate-900 text-slate-100 font-sans selection:bg-emerald-500 selection:text-slate-900">
       
@@ -670,6 +819,7 @@ export default function Home() {
               { id: 'apostar', label: '🎯 Apostas' },
               { id: 'historico', label: '👁️ Histórico' },
               { id: 'ranking', label: '🏆 Ranking Geral' },
+              { id: 'classificacao', label: '📈 Liga da Verdade' },
               { id: 'estatisticas', label: '📊 Curiosidades' },
               { id: 'admin', label: '⚙️ Painel Gestão' }
             ].map(tab => (
@@ -716,7 +866,6 @@ export default function Home() {
                     </button>
                   ))}
                   
-                  {/* BADGE DE JORNADA FECHADA */}
                   {isJornadaFechada && (
                     <span className="ml-2 bg-red-500/20 text-red-400 font-bold px-3 py-1.5 rounded-md text-xs uppercase tracking-widest border border-red-500/30 flex items-center gap-1">
                       🔒 Fechada
@@ -726,7 +875,7 @@ export default function Home() {
               )}
             </div>
 
-            {/* O BOTÃO DA ROLETA DE SORTEIO (SÓ APARECE SE A JORNADA ESTIVER ABERTA) */}
+            {/* O BOTÃO DA ROLETA DE SORTEIO */}
             {abaAtiva === 'apostar' && jogadores.length > 0 && !isJornadaFechada && (
               <div className="flex gap-3 w-full sm:w-auto">
                 <button
@@ -772,7 +921,6 @@ export default function Home() {
                             : 'bg-slate-800 border-slate-700 hover:border-emerald-500 sm:hover:scale-105'
                     }`}
                   >
-                    {/* CADEADO SE A JORNADA ESTIVER FECHADA */}
                     {isJornadaFechada ? (
                       <div className="absolute top-2 right-2 sm:top-4 sm:right-4 bg-slate-800 text-slate-500 w-6 h-6 sm:w-8 sm:h-8 flex items-center justify-center rounded-full font-black text-sm sm:text-base border border-slate-700">
                         🔒
@@ -920,7 +1068,142 @@ export default function Home() {
           </div>
         )}
 
-        {/* ================= ABA 4: ESTATÍSTICAS ================= */}
+        {/* ================= ABA 4: LIGA DA VERDADE ================= */}
+        {abaAtiva === 'classificacao' && (
+          <div className="space-y-6 max-w-5xl mx-auto">
+            
+            <div className="text-center space-y-2">
+              <h2 className="text-2xl sm:text-4xl font-black text-emerald-400 drop-shadow-md">📈 Liga da Verdade</h2>
+            </div>
+
+            {/* SELETORES: SÉRIE A/B & VISÃO DO APOSTADOR */}
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-slate-800/80 p-4 rounded-2xl border border-slate-700">
+              
+              {/* Botões de Série A e B */}
+              <div className="flex gap-2 w-full sm:w-auto">
+                <button
+                  onClick={() => setSerieAtivaView('A')}
+                  className={`flex-1 sm:flex-none px-6 py-2.5 rounded-xl font-black text-sm transition-all ${
+                    serieAtivaView === 'A' 
+                      ? 'bg-emerald-500 text-slate-950 shadow-lg' 
+                      : 'bg-slate-900 text-slate-400 hover:text-white'
+                  }`}
+                >
+                  Série A
+                </button>
+                <button
+                  onClick={() => setSerieAtivaView('B')}
+                  className={`flex-1 sm:flex-none px-6 py-2.5 rounded-xl font-black text-sm transition-all ${
+                    serieAtivaView === 'B' 
+                      ? 'bg-emerald-500 text-slate-950 shadow-lg' 
+                      : 'bg-slate-900 text-slate-400 hover:text-white'
+                  }`}
+                >
+                  Série B
+                </button>
+              </div>
+
+              {/* Seletor de Apostador Personalizado com Fotos */}
+              <div className="flex items-center gap-3 w-full sm:w-auto">
+                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider shrink-0">Visão de:</span>
+                <SeletorJogador 
+                  value={jogadorSimuladoId}
+                  onChange={setJogadorSimuladoId}
+                  jogadores={jogadores}
+                />
+              </div>
+
+            </div>
+
+            {/* TABELA DE CLASSIFICAÇÃO */}
+            <div className="bg-slate-800 border border-slate-700 rounded-2xl overflow-hidden shadow-2xl">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse min-w-[650px]">
+                  <thead>
+                    <tr className="bg-slate-950 border-b-2 border-slate-700 text-xs sm:text-sm uppercase tracking-wider text-slate-400">
+                      <th className="p-4 text-center w-12">#</th>
+                      <th className="p-4">Equipa</th>
+                      <th className="p-4 text-center w-12">J</th>
+                      <th className="p-4 text-center w-12">V</th>
+                      <th className="p-4 text-center w-12">E</th>
+                      <th className="p-4 text-center w-12">D</th>
+                      <th className="p-4 text-center w-16 text-emerald-400">Pts</th>
+                      {jogadorSimuladoId !== 'real' && (
+                        <th className="p-4 text-center w-24 text-amber-400">vs Real</th>
+                      )}
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-800/60 font-bold text-sm sm:text-base">
+                    {tabelaSimuladaAtual.map((item, idx) => {
+                      const posSimulada = idx + 1;
+                      
+                      // Posição Real para Comparar
+                      const idxReal = tabelaRealAtual.findIndex(r => r.nome === item.nome);
+                      const posReal = idxReal + 1;
+
+                      // Diferença: Real - Simulada
+                      const diffPos = posReal - posSimulada;
+
+                      const isFaseSubida = posSimulada <= 4;
+
+                      return (
+                        <tr 
+                          key={item.nome} 
+                          className={`hover:bg-slate-700/40 transition-colors ${
+                            isFaseSubida ? 'bg-emerald-950/20' : 'bg-slate-900/20'
+                          }`}
+                        >
+                          <td className="p-4 text-center font-black">
+                            <span className={`inline-flex items-center justify-center w-8 h-8 rounded-lg ${
+                              isFaseSubida ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40' : 'text-slate-500'
+                            }`}>
+                              {posSimulada}º
+                            </span>
+                          </td>
+
+                          <td className="p-4">
+                            <div className="flex items-center gap-3">
+                              {renderBadge(item.nome, 'w-6 h-6 sm:w-7 sm:h-7')}
+                              <span className="text-white truncate">{item.nome}</span>
+                            </div>
+                          </td>
+
+                          <td className="p-4 text-center text-slate-400">{item.j}</td>
+                          <td className="p-4 text-center text-slate-300">{item.v}</td>
+                          <td className="p-4 text-center text-slate-300">{item.e}</td>
+                          <td className="p-4 text-center text-slate-300">{item.d}</td>
+                          <td className="p-4 text-center text-emerald-400 font-black text-lg">{item.pts}</td>
+
+                          {/* Comparação vs Real (Verde Apenas se For Igual, Vermelho se houver Desvio) */}
+                          {jogadorSimuladoId !== 'real' && (
+                            <td className="p-4 text-center font-black text-xs sm:text-sm">
+                              {diffPos === 0 ? (
+                                <span className="text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-md border border-emerald-500/30">
+                                  🟢 =
+                                </span>
+                              ) : diffPos > 0 ? (
+                                <span className="text-rose-400 bg-rose-500/10 px-2.5 py-1 rounded-md border border-rose-500/30">
+                                  🔴 +{diffPos}
+                                </span>
+                              ) : (
+                                <span className="text-rose-400 bg-rose-500/10 px-2.5 py-1 rounded-md border border-rose-500/30">
+                                  🔴 {diffPos}
+                                </span>
+                              )}
+                            </td>
+                          )}
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+          </div>
+        )}
+
+        {/* ================= ABA 5: ESTATÍSTICAS ================= */}
         {abaAtiva === 'estatisticas' && (
           <div className="space-y-8">
             <h2 className="text-2xl sm:text-3xl font-black mb-8 text-center text-sky-400 drop-shadow-md">📊 Curiosidades e Estatísticas</h2>
@@ -1009,7 +1292,7 @@ export default function Home() {
           </div>
         )}
 
-        {/* ================= ABA 5: ADMIN ================= */}
+        {/* ================= ABA 6: ADMIN ================= */}
         {abaAtiva === 'admin' && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             
@@ -1041,13 +1324,11 @@ export default function Home() {
               {jornadaAtiva && (
                 <div className="bg-slate-800 p-6 sm:p-8 rounded-2xl border border-slate-700 shadow-xl">
                   
-                  {/* CABEÇALHO DO BLOCO JOGOS + BOTÃO TRANCAR */}
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 border-b border-slate-700 pb-4">
                     <h3 className="text-lg sm:text-xl font-black text-emerald-400 uppercase tracking-widest">
                       2. Jogos da Jornada {jornadaAtiva.numero}
                     </h3>
 
-                    {/* BOTÃO PARA TRANCAR A JORNADA INTEIRA */}
                     <button
                       onClick={alternarEstadoJornada}
                       className={`flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-black text-sm transition-all shadow-md ${
@@ -1130,9 +1411,7 @@ export default function Home() {
                           ) : (
                             <div className="flex flex-col gap-3">
                               
-                              {/* LINHA 1: ARRASTAR + EQUIPAS EM CONFRONTO */}
                               <div className="flex items-center justify-between bg-slate-950/60 p-3 rounded-lg border border-slate-800/80 gap-2">
-                                
                                 <div className="cursor-grab active:cursor-grabbing text-slate-600 hover:text-amber-400 text-lg px-1 select-none" title="Clique e arraste para mudar a ordem">
                                   ☰
                                 </div>
@@ -1150,7 +1429,6 @@ export default function Home() {
                                 </div>
                               </div>
 
-                              {/* LINHA 2: RESULTADOS E FERRAMENTAS */}
                               <div className="flex items-center justify-between gap-2 pt-1">
                                 <div className="flex items-center gap-1.5">
                                   <span className="text-[10px] uppercase tracking-wider font-bold text-slate-500 hidden sm:inline">Oficial:</span>
