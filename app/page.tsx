@@ -127,7 +127,7 @@ export default function Home() {
   const [isAdminAuth, setIsAdminAuth] = useState(false);
   const [pinInput, setPinInput] = useState('');
   const [mostrarPinModal, setMostrarPinModal] = useState(false);
-  const PIN_CORRETO = '1234';
+  const PIN_CORRETO = '2627';
 
   // Modal de Aposta
   const [jogadorApostar, setJogadorApostar] = useState<any | null>(null);
@@ -157,6 +157,9 @@ export default function Home() {
   const [jogoEditId, setJogoEditId] = useState<string | null>(null);
   const [editEquipaCasa, setEditEquipaCasa] = useState('');
   const [editEquipaFora, setEditEquipaFora] = useState('');
+
+  // VARIÁVEL DE CONTROLO DE JORNADA FECHADA
+  const isJornadaFechada = jornadaAtiva?.estado === 'fechada';
 
   // 1. CARREGAR DADOS INICIAIS
   useEffect(() => {
@@ -209,9 +212,30 @@ export default function Home() {
     if (dApostas) setApostas(dApostas);
   }
 
+  // TRANCAR / DESTRANCAR JORNADA
+  async function alternarEstadoJornada() {
+    if (!jornadaAtiva) return;
+    const novoEstado = isJornadaFechada ? 'aberta' : 'fechada';
+    
+    const confirmacao = isJornadaFechada 
+      ? 'Tem a certeza que pretende reabrir as apostas?' 
+      : 'Tem a certeza que pretende fechar as apostas? Ninguém poderá alterar palpites.';
+      
+    if (!confirm(confirmacao)) return;
+
+    await supabase.from('jornadas').update({ estado: novoEstado }).eq('id', jornadaAtiva.id);
+    
+    // Atualiza localmente
+    setJornadaAtiva({ ...jornadaAtiva, estado: novoEstado });
+    
+    // Atualiza lista completa no background
+    const { data: dJornadas } = await supabase.from('jornadas').select('*').order('numero', { ascending: false });
+    if (dJornadas) setJornadas(dJornadas);
+  }
+
   // ROLETA DE SORTEIO COM GIF DE CELEBRAÇÃO PERSONALIZADO
   function sortearProximoApostador() {
-    if (isSorteando) return;
+    if (isSorteando || isJornadaFechada) return;
 
     const pendentes = jogadores.filter(j => {
       return !jogos.every(jg => apostas.some(a => a.jogador_id === j.id && a.jogo_id === jg.id));
@@ -301,6 +325,14 @@ export default function Home() {
   }
 
   // 3. FUNÇÕES DE APOSTA
+  function tentarAbrirModalAposta(jogador: any) {
+    if (isJornadaFechada) {
+      alert(`🔒 A Jornada ${jornadaAtiva?.numero} está encerrada! Não é possível alterar as apostas do ${jogador.nome}.`);
+      return;
+    }
+    abrirModalAposta(jogador);
+  }
+
   function abrirModalAposta(jogador: any) {
     const apostasDoJogador = apostas.filter(a => a.jogador_id === jogador.id);
     const novosPalpites: { [key: string]: '1' | 'X' | '2' } = {};
@@ -669,7 +701,7 @@ export default function Home() {
               {jornadas.length === 0 ? (
                 <span className="text-slate-500 text-xs font-bold italic">Nenhuma jornada criada</span>
               ) : (
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-2 items-center">
                   {jornadas.map(j => (
                     <button
                       key={j.id}
@@ -683,12 +715,19 @@ export default function Home() {
                       {j.numero}
                     </button>
                   ))}
+                  
+                  {/* BADGE DE JORNADA FECHADA */}
+                  {isJornadaFechada && (
+                    <span className="ml-2 bg-red-500/20 text-red-400 font-bold px-3 py-1.5 rounded-md text-xs uppercase tracking-widest border border-red-500/30 flex items-center gap-1">
+                      🔒 Fechada
+                    </span>
+                  )}
                 </div>
               )}
             </div>
 
-            {/* O BOTÃO DA ROLETA DE SORTEIO */}
-            {abaAtiva === 'apostar' && jogadores.length > 0 && (
+            {/* O BOTÃO DA ROLETA DE SORTEIO (SÓ APARECE SE A JORNADA ESTIVER ABERTA) */}
+            {abaAtiva === 'apostar' && jogadores.length > 0 && !isJornadaFechada && (
               <div className="flex gap-3 w-full sm:w-auto">
                 <button
                   onClick={sortearProximoApostador}
@@ -722,36 +761,54 @@ export default function Home() {
                 return (
                   <button
                     key={jogador.id}
-                    onClick={() => abrirModalAposta(jogador)}
+                    onClick={() => tentarAbrirModalAposta(jogador)}
                     className={`group relative flex flex-col items-center justify-center p-4 sm:p-8 rounded-2xl border-4 transition-all duration-150 ${
                       isOnRoulette 
                         ? 'bg-amber-500/20 border-amber-500 shadow-[0_0_30px_rgba(245,158,11,0.6)] scale-105 sm:scale-110 z-10' 
-                        : jaApostouTudo 
-                          ? 'bg-emerald-900/20 border-emerald-500/50 sm:hover:scale-105' 
-                          : 'bg-slate-800 border-slate-700 hover:border-emerald-500 sm:hover:scale-105'
+                        : isJornadaFechada
+                          ? 'bg-slate-900 border-slate-800 opacity-60 cursor-not-allowed'
+                          : jaApostouTudo 
+                            ? 'bg-emerald-900/20 border-emerald-500/50 sm:hover:scale-105' 
+                            : 'bg-slate-800 border-slate-700 hover:border-emerald-500 sm:hover:scale-105'
                     }`}
                   >
-                    {jaApostouTudo && (
+                    {/* CADEADO SE A JORNADA ESTIVER FECHADA */}
+                    {isJornadaFechada ? (
+                      <div className="absolute top-2 right-2 sm:top-4 sm:right-4 bg-slate-800 text-slate-500 w-6 h-6 sm:w-8 sm:h-8 flex items-center justify-center rounded-full font-black text-sm sm:text-base border border-slate-700">
+                        🔒
+                      </div>
+                    ) : jaApostouTudo ? (
                       <div className="absolute top-2 right-2 sm:top-4 sm:right-4 bg-emerald-500 text-slate-900 w-6 h-6 sm:w-8 sm:h-8 flex items-center justify-center rounded-full font-black text-sm sm:text-xl shadow-lg">
                         ✓
                       </div>
-                    )}
+                    ) : null}
                     
                     {jogador.foto_url ? (
                       <img 
                         src={jogador.foto_url} 
                         alt={jogador.nome} 
-                        className={`w-16 h-16 sm:w-24 sm:h-24 rounded-full mb-2 sm:mb-4 object-cover border-4 transition-colors ${isOnRoulette ? 'border-amber-400 shadow-xl' : 'border-slate-800 group-hover:border-emerald-500'}`} 
+                        className={`w-16 h-16 sm:w-24 sm:h-24 rounded-full mb-2 sm:mb-4 object-cover border-4 transition-colors ${
+                          isOnRoulette ? 'border-amber-400 shadow-xl' 
+                          : isJornadaFechada ? 'border-slate-800 grayscale'
+                          : 'border-slate-800 group-hover:border-emerald-500'
+                        }`} 
                       />
                     ) : (
-                      <div className={`w-16 h-16 sm:w-24 sm:h-24 bg-slate-700 rounded-full mb-2 sm:mb-4 flex items-center justify-center text-2xl sm:text-4xl font-black text-slate-400 border-4 transition-colors ${isOnRoulette ? 'border-amber-400 text-amber-400 shadow-xl' : 'border-slate-800 group-hover:border-emerald-500'}`}>
+                      <div className={`w-16 h-16 sm:w-24 sm:h-24 rounded-full mb-2 sm:mb-4 flex items-center justify-center text-2xl sm:text-4xl font-black border-4 transition-colors ${
+                        isOnRoulette ? 'border-amber-400 text-amber-400 shadow-xl bg-slate-700' 
+                        : isJornadaFechada ? 'border-slate-800 text-slate-600 bg-slate-800'
+                        : 'border-slate-800 group-hover:border-emerald-500 text-slate-400 bg-slate-700'
+                      }`}>
                         {jogador.nome.charAt(0).toUpperCase()}
                       </div>
                     )}
 
-                    <span className={`text-base sm:text-xl font-bold text-center ${isOnRoulette ? 'text-amber-400' : ''}`}>{jogador.nome}</span>
-                    <span className={`text-[10px] sm:text-sm mt-1 sm:mt-2 font-medium text-center ${jaApostouTudo ? 'text-emerald-400' : 'text-slate-500'}`}>
-                      {jaApostouTudo ? 'Apostas Registadas' : 'A aguardar apostas'}
+                    <span className={`text-base sm:text-xl font-bold text-center ${isOnRoulette ? 'text-amber-400' : isJornadaFechada ? 'text-slate-500' : ''}`}>{jogador.nome}</span>
+                    <span className={`text-[10px] sm:text-sm mt-1 sm:mt-2 font-medium text-center ${
+                      isJornadaFechada ? 'text-slate-600' :
+                      jaApostouTudo ? 'text-emerald-400' : 'text-slate-500'
+                    }`}>
+                      {isJornadaFechada ? 'Fechado' : jaApostouTudo ? 'Apostas Registadas' : 'A aguardar apostas'}
                     </span>
                   </button>
                 );
@@ -983,10 +1040,25 @@ export default function Home() {
 
               {jornadaAtiva && (
                 <div className="bg-slate-800 p-6 sm:p-8 rounded-2xl border border-slate-700 shadow-xl">
-                  <h3 className="text-lg sm:text-xl font-black text-emerald-400 mb-6 uppercase tracking-widest flex justify-between items-center">
-                    <span>2. Adicionar Jogo</span>
-                    <span className="text-slate-500 text-xs sm:text-base">Jornada {jornadaAtiva.numero}</span>
-                  </h3>
+                  
+                  {/* CABEÇALHO DO BLOCO JOGOS + BOTÃO TRANCAR */}
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 border-b border-slate-700 pb-4">
+                    <h3 className="text-lg sm:text-xl font-black text-emerald-400 uppercase tracking-widest">
+                      2. Jogos da Jornada {jornadaAtiva.numero}
+                    </h3>
+
+                    {/* BOTÃO PARA TRANCAR A JORNADA INTEIRA */}
+                    <button
+                      onClick={alternarEstadoJornada}
+                      className={`flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-black text-sm transition-all shadow-md ${
+                        isJornadaFechada 
+                          ? 'bg-slate-900 text-red-400 border border-red-500/50 hover:bg-red-950/30' 
+                          : 'bg-emerald-500 text-slate-950 hover:bg-emerald-400'
+                      }`}
+                    >
+                      {isJornadaFechada ? '🔒 Desbloquear Apostas' : '🔓 Trancar Apostas'}
+                    </button>
+                  </div>
                   
                   <div className="space-y-4">
                     <SeletorEquipa 
@@ -1012,9 +1084,11 @@ export default function Home() {
             <div className="space-y-6">
               
               <div className="bg-slate-800 p-6 sm:p-8 rounded-2xl border border-slate-700 shadow-xl">
-                <h3 className="text-lg sm:text-xl font-black text-amber-400 mb-6 uppercase tracking-widest">
-                  🏁 Jogos da Jornada {jornadaAtiva?.numero || '-'}
+                <h3 className="text-lg sm:text-xl font-black text-amber-400 mb-6 uppercase tracking-widest flex items-center justify-between">
+                  <span>🏁 Resultados</span>
+                  {isJornadaFechada && <span className="text-xs text-red-400 bg-red-400/10 px-2 py-1 rounded">🔒 Bloqueado a Palpites</span>}
                 </h3>
+
                 {jogos.length === 0 ? <p className="text-slate-500 italic text-sm">Nenhum jogo nesta jornada.</p> : (
                   <div className="space-y-3">
                     {jogos.map((jogo, index) => {
