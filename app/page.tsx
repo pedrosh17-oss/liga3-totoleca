@@ -397,8 +397,43 @@ export default function Home() {
     }
   }
 
+  // REORDENAR JOGOS (MOVER PARA CIMA / BAIXO)
+  async function moverJogo(jogoId: string, direcao: 'up' | 'down') {
+    const index = jogos.findIndex(j => j.id === jogoId);
+    if (index === -1) return;
+
+    const targetIndex = direcao === 'up' ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= jogos.length) return;
+
+    const jogoAtual = jogos[index];
+    const jogoDestino = jogos[targetIndex];
+
+    let t1 = jogoAtual.created_at;
+    let t2 = jogoDestino.created_at;
+
+    // Se os timestamps forem idênticos, cria datas ordenadas distintas
+    if (t1 === t2) {
+      const baseTime = new Date(t1 || Date.now()).getTime();
+      t1 = new Date(baseTime + (direcao === 'up' ? -1000 : 1000)).toISOString();
+      t2 = new Date(baseTime).toISOString();
+    }
+
+    // Troca as datas de criação na base de dados para alterar a ordem global
+    await supabase.from('jogos').update({ created_at: t2 }).eq('id', jogoAtual.id);
+    await supabase.from('jogos').update({ created_at: t1 }).eq('id', jogoDestino.id);
+
+    if (jornadaAtiva?.id) {
+      await carregarJogosEApostas(jornadaAtiva.id);
+    }
+  }
+
+  // MARCAR RESULTADO COM SUPORTE A ALTERNAR (TOGGLE)
   async function marcarResultadoFinal(jogoId: string, resultado: '1' | 'X' | '2') {
-    await supabase.from('jogos').update({ resultado_final: resultado }).eq('id', jogoId);
+    const jogoAtual = jogos.find(j => j.id === jogoId);
+    // Se clicar no mesmo resultado já guardado, limpa o valor (null)
+    const novoResultado = jogoAtual?.resultado_final === resultado ? null : resultado;
+
+    await supabase.from('jogos').update({ resultado_final: novoResultado }).eq('id', jogoId);
     if (jornadaAtiva?.id) carregarJogosEApostas(jornadaAtiva.id);
   }
 
@@ -888,7 +923,7 @@ export default function Home() {
               )}
             </div>
 
-            {/* Bloco 2: Marcar Resultados, Edição & Apagar Jogos */}
+            {/* Bloco 2: Marcar Resultados, Edição, Reordenar & Apagar Jogos */}
             <div className="space-y-6">
               
               <div className="bg-slate-800 p-6 sm:p-8 rounded-2xl border border-slate-700 shadow-xl">
@@ -897,7 +932,7 @@ export default function Home() {
                 </h3>
                 {jogos.length === 0 ? <p className="text-slate-500 italic text-sm">Nenhum jogo nesta jornada.</p> : (
                   <div className="space-y-3">
-                    {jogos.map(jogo => {
+                    {jogos.map((jogo, index) => {
                       const estaEditando = jogoEditId === jogo.id;
 
                       return (
@@ -940,16 +975,34 @@ export default function Home() {
                               </div>
                               
                               <div className="flex items-center justify-between w-full sm:w-auto gap-2 border-t border-slate-800 sm:border-0 pt-3 sm:pt-0">
+                                {/* Botões de Resultado 1 X 2 */}
                                 <div className="flex gap-1">
                                   {(['1', 'X', '2'] as const).map(res => (
-                                    <button key={res} onClick={() => marcarResultadoFinal(jogo.id, res)} className={`w-10 h-10 sm:w-9 sm:h-9 rounded-lg font-black text-sm sm:text-xs transition ${jogo.resultado_final === res ? 'bg-amber-500 text-slate-900 shadow-lg scale-110' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'}`}>
+                                    <button key={res} onClick={() => marcarResultadoFinal(jogo.id, res)} className={`w-9 h-9 sm:w-9 sm:h-9 rounded-lg font-black text-sm sm:text-xs transition ${jogo.resultado_final === res ? 'bg-amber-500 text-slate-900 shadow-lg scale-110' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'}`}>
                                       {res}
                                     </button>
                                   ))}
                                 </div>
                                 
-                                <div className="flex gap-1 ml-auto">
-                                  <button onClick={() => iniciarEdicaoJogo(jogo)} className="text-slate-400 hover:text-white p-2 bg-slate-800 hover:bg-slate-700 rounded-lg transition" title="Editar Equipas">
+                                {/* Ações: Mover, Editar, Apagar */}
+                                <div className="flex items-center gap-1 ml-auto">
+                                  <button 
+                                    onClick={() => moverJogo(jogo.id, 'up')} 
+                                    disabled={index === 0}
+                                    className={`p-2 rounded-lg transition text-xs ${index === 0 ? 'opacity-20 cursor-not-allowed text-slate-600' : 'text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700'}`}
+                                    title="Mover para Cima"
+                                  >
+                                    ⬆️
+                                  </button>
+                                  <button 
+                                    onClick={() => moverJogo(jogo.id, 'down')} 
+                                    disabled={index === jogos.length - 1}
+                                    className={`p-2 rounded-lg transition text-xs ${index === jogos.length - 1 ? 'opacity-20 cursor-not-allowed text-slate-600' : 'text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700'}`}
+                                    title="Mover para Baixo"
+                                  >
+                                    ⬇️
+                                  </button>
+                                  <button onClick={() => iniciarEdicaoJogo(jogo)} className="text-slate-400 hover:text-white p-2 bg-slate-800 hover:bg-slate-700 rounded-lg transition ml-1" title="Editar Equipas">
                                     ✏️
                                   </button>
                                   <button onClick={() => apagarJogo(jogo.id)} className="text-red-400 hover:text-red-300 p-2 bg-red-500/10 hover:bg-red-500/20 rounded-lg transition" title="Apagar Jogo">
@@ -1063,7 +1116,7 @@ export default function Home() {
                 return (
                   <div key={jogo.id} className={`flex flex-col lg:flex-row items-center justify-between p-4 sm:p-5 rounded-2xl border-2 transition gap-4 lg:gap-0 ${isJoker ? 'bg-amber-900/10 border-amber-500/50' : 'bg-slate-800/50 border-slate-700 hover:border-slate-600'}`}>
                     
-                    {/* Equipas Layout (Em cima no mobile, Lado a lado no PC) */}
+                    {/* Equipas Layout */}
                     <div className="w-full flex lg:flex-1 text-lg sm:text-2xl font-bold items-center justify-center lg:justify-start gap-2 sm:gap-3">
                       <div className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 text-center w-2/5 lg:w-auto">
                         {renderBadge(jogo.equipa_casa, 'w-8 h-8 sm:w-10 sm:h-10')}
@@ -1076,13 +1129,20 @@ export default function Home() {
                       </div>
                     </div>
 
-                    {/* Botões de Aposta Layout */}
+                    {/* Botões de Aposta Layout (Suporta desmarcar ao clicar novamente) */}
                     <div className="flex items-center gap-3 sm:gap-6 w-full lg:w-auto justify-center">
                       <div className="flex gap-1.5 sm:gap-2 bg-slate-900 p-1.5 sm:p-2 rounded-xl">
                         {(['1', 'X', '2'] as const).map(opcao => (
                           <button
                             key={opcao}
-                            onClick={() => setPalpitesTemp(prev => ({ ...prev, [jogo.id]: opcao }))}
+                            onClick={() => setPalpitesTemp(prev => {
+                              if (prev[jogo.id] === opcao) {
+                                const copy = { ...prev };
+                                delete copy[jogo.id];
+                                return copy;
+                              }
+                              return { ...prev, [jogo.id]: opcao };
+                            })}
                             className={`w-12 h-12 sm:w-16 sm:h-16 rounded-lg text-xl sm:text-2xl font-black transition-all ${
                               palpite === opcao
                                 ? 'bg-emerald-500 text-slate-900 shadow-[0_0_15px_rgba(16,185,129,0.5)] scale-110'
@@ -1095,7 +1155,7 @@ export default function Home() {
                       </div>
 
                       <button
-                        onClick={() => setJokerJogoId(jogo.id)}
+                        onClick={() => setJokerJogoId(isJoker ? null : jogo.id)}
                         className={`flex flex-col items-center justify-center w-16 h-[60px] sm:w-24 sm:h-[80px] rounded-xl font-black transition-all border-2 shrink-0 ${
                           isJoker
                             ? 'bg-amber-500 text-slate-900 border-amber-400 shadow-[0_0_15px_rgba(245,158,11,0.5)] scale-110'
@@ -1111,13 +1171,24 @@ export default function Home() {
               })}
             </div>
 
-            <button
-              onClick={guardarAposta}
-              disabled={isSaving}
-              className="w-full bg-emerald-500 hover:bg-emerald-400 text-slate-900 font-black text-lg sm:text-2xl py-5 sm:py-6 rounded-2xl shadow-xl transition-all active:scale-95 uppercase tracking-widest sticky bottom-0"
-            >
-              {isSaving ? 'A guardar...' : '✅ Confirmar Apostas'}
-            </button>
+            {/* BOTÕES INFERIORES: VOLTAR E CONFIRMAR */}
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+              <button
+                onClick={() => setJogadorApostar(null)}
+                className="w-full sm:w-1/3 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-base sm:text-xl py-4 sm:py-6 rounded-2xl transition-all uppercase tracking-widest order-2 sm:order-1"
+              >
+                ← Voltar
+              </button>
+              
+              <button
+                onClick={guardarAposta}
+                disabled={isSaving}
+                className="w-full sm:w-2/3 bg-emerald-500 hover:bg-emerald-400 text-slate-900 font-black text-lg sm:text-2xl py-4 sm:py-6 rounded-2xl shadow-xl transition-all active:scale-95 uppercase tracking-widest order-1 sm:order-2"
+              >
+                {isSaving ? 'A guardar...' : '✅ Confirmar Apostas'}
+              </button>
+            </div>
+
           </div>
         </div>
       )}
