@@ -146,7 +146,7 @@ function SeletorJogador({ value, onChange, jogadores }: { value: string, onChang
         ) : jogadorSelecionado ? (
           <div className="flex items-center gap-2 overflow-hidden">
             {jogadorSelecionado.foto_url ? (
-              <img src={jogadorSelecionado.foto_url} alt={jogadorSelecionado.nome} className="w-6 h-6 rounded-full object-cover shrink-0 border border-emerald-500/50" />
+              <img src={jogadorSelecionado.foto_url} alt={jogadorSelecionado.nome} className="w-6 h-6 object-contain shrink-0" />
             ) : (
               <div className="w-6 h-6 bg-slate-700 rounded-full flex items-center justify-center font-bold text-slate-300 text-xs shrink-0">
                 {jogadorSelecionado.nome[0]}
@@ -191,7 +191,7 @@ function SeletorJogador({ value, onChange, jogadores }: { value: string, onChang
                   className={`flex items-center gap-3 p-2.5 hover:bg-slate-700 cursor-pointer transition border-b border-slate-700/50 last:border-0 ${value === j.id ? 'bg-emerald-900/30 text-emerald-400' : 'text-slate-200'}`}
                 >
                   {j.foto_url ? (
-                    <img src={j.foto_url} alt={j.nome} className="w-6 h-6 rounded-full object-cover shrink-0 border border-emerald-500/50" />
+                    <img src={j.foto_url} alt={j.nome} className="w-6 h-6 object-contain shrink-0" />
                   ) : (
                     <div className="w-6 h-6 bg-slate-700 rounded-full flex items-center justify-center font-bold text-slate-300 text-xs shrink-0">
                       {j.nome[0]}
@@ -227,7 +227,7 @@ export default function Home() {
   const [isAdminAuth, setIsAdminAuth] = useState(false);
   const [pinInput, setPinInput] = useState('');
   const [mostrarPinModal, setMostrarPinModal] = useState(false);
-  const PIN_CORRETO = '2627';
+  const PIN_CORRETO = '1234';
 
   // Modal de Aposta
   const [jogadorApostar, setJogadorApostar] = useState<any | null>(null);
@@ -803,18 +803,17 @@ export default function Home() {
   return (
     <main className="min-h-screen bg-slate-900 text-slate-100 font-sans selection:bg-emerald-500 selection:text-slate-900">
       
-      {/* 📱 TOP NAVIGATION RESPONSIVA E COM IMAGEM DO LOGO */}
+      {/* 📱 TOP NAVIGATION RESPONSIVA E COM LOGO EM DESTAQUE */}
       <header className="bg-slate-950 border-b border-slate-800 sticky top-0 z-40 shadow-xl">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 sm:py-4 flex flex-col md:flex-row items-center justify-between gap-3 sm:gap-4">
           
-          {/* LOGOTIPO COMPLETO EM IMAGEM */}
+          {/* LOGOTIPO AUMENTADO */}
           <div className="flex items-center shrink-0 cursor-pointer" onClick={() => setAbaAtiva('apostar')}>
             <img 
               src="/logo.png" 
               alt="Totoleça" 
-              className="h-10 sm:h-12 object-contain" 
+              className="h-14 sm:h-20 max-h-24 object-contain drop-shadow-md" 
               onError={(e) => {
-                // Fallback para quando o logo for guardado como .jpg
                 e.currentTarget.src = "/logo.jpg";
               }}
             />
@@ -937,18 +936,19 @@ export default function Home() {
                       </div>
                     ) : null}
                     
+                    {/* AVATAR COM FORMATO NATURAL RECORTADO (SEM CÍRCULO) */}
                     {jogador.foto_url ? (
                       <img 
                         src={jogador.foto_url} 
                         alt={jogador.nome} 
-                        className={`w-16 h-16 sm:w-24 sm:h-24 rounded-full mb-2 sm:mb-4 object-cover border-4 transition-colors ${
-                          isOnRoulette ? 'border-amber-400 shadow-xl' 
-                          : isJornadaFechada ? 'border-slate-800 grayscale'
-                          : 'border-slate-800 group-hover:border-emerald-500'
+                        className={`w-20 h-20 sm:w-28 sm:h-28 mb-2 sm:mb-4 object-contain transition-transform ${
+                          isOnRoulette ? 'scale-110 drop-shadow-[0_0_15px_rgba(245,158,11,0.8)]' 
+                          : isJornadaFechada ? 'grayscale opacity-60'
+                          : 'group-hover:scale-105 drop-shadow-md'
                         }`} 
                       />
                     ) : (
-                      <div className={`w-16 h-16 sm:w-24 sm:h-24 rounded-full mb-2 sm:mb-4 flex items-center justify-center text-2xl sm:text-4xl font-black border-4 transition-colors ${
+                      <div className={`w-16 h-16 sm:w-24 sm:h-24 rounded-2xl mb-2 sm:mb-4 flex items-center justify-center text-2xl sm:text-4xl font-black border-2 transition-colors ${
                         isOnRoulette ? 'border-amber-400 text-amber-400 shadow-xl bg-slate-700' 
                         : isJornadaFechada ? 'border-slate-800 text-slate-600 bg-slate-800'
                         : 'border-slate-800 group-hover:border-emerald-500 text-slate-400 bg-slate-700'
@@ -1057,9 +1057,9 @@ export default function Home() {
                     {idx + 1}º
                   </span>
                   {j.foto_url ? (
-                    <img src={j.foto_url} alt={j.nome} className="w-12 h-12 sm:w-16 sm:h-16 rounded-full object-cover" />
+                    <img src={j.foto_url} alt={j.nome} className="w-12 h-12 sm:w-16 sm:h-16 object-contain drop-shadow-md" />
                   ) : (
-                    <div className="w-12 h-12 sm:w-16 sm:h-16 bg-slate-700 rounded-full flex items-center justify-center text-xl sm:text-2xl font-black text-slate-400">
+                    <div className="w-12 h-12 sm:w-16 sm:h-16 bg-slate-700 rounded-xl flex items-center justify-center text-xl sm:text-2xl font-black text-slate-400">
                       {j.nome.charAt(0)}
                     </div>
                   )}
@@ -1263,9 +1263,9 @@ export default function Home() {
                       <tr key={j.id} className="hover:bg-slate-800/50 transition-colors">
                         <td className="p-4 font-bold flex items-center gap-3">
                           {j.foto_url ? (
-                            <img src={j.foto_url} alt={j.nome} className="w-8 h-8 sm:w-10 sm:h-10 rounded-full object-cover shrink-0" />
+                            <img src={j.foto_url} alt={j.nome} className="w-8 h-8 sm:w-10 sm:h-10 object-contain shrink-0" />
                           ) : (
-                            <div className="w-8 h-8 sm:w-10 sm:h-10 bg-slate-700 rounded-full flex items-center justify-center font-black text-slate-400 shrink-0">
+                            <div className="w-8 h-8 sm:w-10 sm:h-10 bg-slate-700 rounded-xl flex items-center justify-center font-black text-slate-400 shrink-0">
                               {j.nome.charAt(0)}
                             </div>
                           )}
@@ -1514,9 +1514,9 @@ export default function Home() {
                         <div key={j.id} className="flex items-center justify-between bg-slate-900 p-3 rounded-xl border border-slate-800">
                           <div className="flex items-center gap-3 min-w-0">
                             {j.foto_url ? (
-                              <img src={j.foto_url} alt={j.nome} className="w-10 h-10 rounded-full object-cover shrink-0 border-2 border-emerald-500/50" />
+                              <img src={j.foto_url} alt={j.nome} className="w-10 h-10 object-contain shrink-0" />
                             ) : (
-                              <div className="w-10 h-10 bg-slate-700 rounded-full flex items-center justify-center font-bold text-slate-300 text-sm shrink-0">
+                              <div className="w-10 h-10 bg-slate-700 rounded-xl flex items-center justify-center font-bold text-slate-300 text-sm shrink-0">
                                 {j.nome[0]}
                               </div>
                             )}
