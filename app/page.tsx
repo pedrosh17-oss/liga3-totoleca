@@ -3,6 +3,33 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 
+// 🛡️ DICIONÁRIO DAS 20 EQUIPAS E RESPETIVOS EMBLEMAS (Na pasta /public/equipas/)
+// NOTA: Se as tuas imagens forem .jpg, basta mudares o '.png' para '.jpg' aqui em baixo!
+const EQUIPAS_MAP: Record<string, string> = {
+  'AD Marco 09': '/equipas/marco09.png',
+  'Atlético CP': '/equipas/atletico.png',
+  'Belenenses': '/equipas/belenenses.png',
+  'Caldas SC': '/equipas/caldas.png',
+  'CD Mafra': '/equipas/mafra.png',
+  'Fafe': '/equipas/fafe.png',
+  'Leça FC': '/equipas/leca.png',
+  'Louletano': '/equipas/louletano.png',
+  'Lusitano GC': '/equipas/lusitano.png',
+  'Paços de Ferreira': '/equipas/pacos.png',
+  'S. João Ver': '/equipas/sjoaover.png',
+  'SC Covilhã': '/equipas/covilha.png',
+  'Trofense': '/equipas/trofense.png',
+  'U. Santarém': '/equipas/santarem.png',
+  'UD Oliveirense': '/equipas/oliveirense.png',
+  'USC Paredes': '/equipas/paredes.png',
+  'Varzim': '/equipas/varzim.png',
+  'Vianense': '/equipas/vianense.png',
+  'Vitória SC B': '/equipas/vitoriasc.png',
+  'Vitória Sernache': '/equipas/vitoriasernache.png'
+};
+
+const EQUIPAS_LISTA = Object.keys(EQUIPAS_MAP).sort();
+
 export default function Home() {
   const [abaAtiva, setAbaAtiva] = useState<'apostar' | 'historico' | 'ranking' | 'estatisticas' | 'admin'>('apostar');
   
@@ -26,6 +53,10 @@ export default function Home() {
   const [jokerJogoId, setJokerJogoId] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
+  // Efeito Roleta (Sorteio)
+  const [isSorteando, setIsSorteando] = useState(false);
+  const [roletaId, setRoletaId] = useState<string | null>(null);
+
   // Formulários Admin
   const [novoJogadorNome, setNovoJogadorNome] = useState('');
   const [novoJogadorFoto, setNovoJogadorFoto] = useState<File | null>(null);
@@ -38,6 +69,13 @@ export default function Home() {
   const [jogoEditId, setJogoEditId] = useState<string | null>(null);
   const [editEquipaCasa, setEditEquipaCasa] = useState('');
   const [editEquipaFora, setEditEquipaFora] = useState('');
+
+  // Helper para renderizar logo da equipa (busca o ficheiro que colocaste na pasta public)
+  function renderBadge(nomeEquipa: string, size = 'w-6 h-6') {
+    const url = EQUIPAS_MAP[nomeEquipa];
+    if (!url) return <span className="text-xs">⚽</span>;
+    return <img src={url} alt={nomeEquipa} className={`${size} object-contain inline-block shrink-0 drop-shadow-md`} />;
+  }
 
   // 1. CARREGAR DADOS INICIAIS
   useEffect(() => {
@@ -88,6 +126,49 @@ export default function Home() {
     
     if (dJogos) setJogos(dJogos);
     if (dApostas) setApostas(dApostas);
+  }
+
+  // ROLETA DE SORTEIO
+  function sortearProximoApostador() {
+    if (isSorteando) return;
+
+    const pendentes = jogadores.filter(j => {
+      return !jogos.every(jg => apostas.some(a => a.jogador_id === j.id && a.jogo_id === jg.id));
+    });
+
+    if (pendentes.length === 0) {
+      alert('🎉 Todos os jogadores já preencheram as apostas desta jornada!');
+      return;
+    }
+
+    if (pendentes.length === 1) {
+      abrirModalAposta(pendentes[0]);
+      return;
+    }
+
+    setIsSorteando(true);
+    let voltas = 0;
+    const maxVoltas = 15 + Math.floor(Math.random() * 10);
+    let currentIdx = 0;
+
+    const tick = () => {
+      setRoletaId(pendentes[currentIdx].id);
+      voltas++;
+
+      if (voltas < maxVoltas) {
+        currentIdx = (currentIdx + 1) % pendentes.length;
+        const delay = 50 + (voltas * voltas * 0.8);
+        setTimeout(tick, delay);
+      } else {
+        setTimeout(() => {
+          setIsSorteando(false);
+          setRoletaId(null);
+          abrirModalAposta(pendentes[currentIdx]);
+        }, 1000);
+      }
+    };
+    
+    tick();
   }
 
   // 2. NAVEGAÇÃO & PIN ADMIN
@@ -152,7 +233,7 @@ export default function Home() {
     setIsSaving(false);
   }
 
-  // 4. FUNÇÕES ADMIN (CRIAR, EDITAR E APAGAR)
+  // 4. FUNÇÕES ADMIN
   async function criarJogador() {
     if (!novoJogadorNome) return;
     setIsUploading(true);
@@ -211,7 +292,9 @@ export default function Home() {
   }
 
   async function adicionarJogo() {
-    if (!jornadaAtiva || !equipaCasa || !equipaFora) return;
+    if (!jornadaAtiva || !equipaCasa || !equipaFora) return alert("Seleciona ambas as equipas!");
+    if (equipaCasa === equipaFora) return alert("A equipa da casa e a de fora têm de ser diferentes!");
+
     await supabase.from('jogos').insert([{
       jornada_id: jornadaAtiva.id,
       equipa_casa: equipaCasa,
@@ -322,8 +405,10 @@ export default function Home() {
         pontosTotais: totalPontos,
         jokersCertos,
         empatesCertos,
-        equipaTalisma: maxT > 0 ? `${melhorEquipa} (+${maxT}pts)` : '-',
-        equipaApostarContra: maxP > 0 ? `${piorEquipa} (+${maxP}pts)` : '-'
+        equipaTalismaNome: melhorEquipa,
+        equipaTalismaPts: maxT,
+        equipaApostarContraNome: piorEquipa,
+        equipaApostarContraPts: maxP
       };
     }).sort((a, b) => b.pontosTotais - a.pontosTotais);
 
@@ -341,7 +426,8 @@ export default function Home() {
       statsPorJogador,
       reiDosJokers: globalMaxJokers > 0 ? `${globalReiJoker} (${globalMaxJokers} certos)` : '-',
       reiDosEmpates: globalMaxEmpates > 0 ? `${globalReiEmpates} (${globalMaxEmpates} certos)` : '-',
-      melhorEquipaJoker: globalBestJokerPts > 0 ? `${globalBestJokerTeam} (rendeu ${globalBestJokerPts}pts)` : '-'
+      melhorEquipaJokerNome: globalBestJokerTeam,
+      melhorEquipaJokerPts: globalBestJokerPts
     };
   };
 
@@ -385,29 +471,51 @@ export default function Home() {
 
       <div className="max-w-7xl mx-auto px-6 py-8">
         
-        {/* SELETOR DE JORNADAS */}
+        {/* SELETOR DE JORNADAS E BOTÃO DE SORTEIO */}
         {(abaAtiva === 'apostar' || abaAtiva === 'historico' || abaAtiva === 'admin') && (
-          <div className="mb-10 flex items-center gap-4 bg-slate-800/50 p-3 rounded-xl border border-slate-700 w-fit">
-            <span className="text-slate-400 font-bold ml-2 uppercase text-xs tracking-widest">Jornada Ativa:</span>
-            {jornadas.length === 0 ? (
-              <span className="text-slate-500 text-xs font-bold italic">Nenhuma jornada criada</span>
-            ) : (
-              <div className="flex gap-2">
-                {jornadas.map(j => (
-                  <button
-                    key={j.id}
-                    onClick={() => setJornadaAtiva(j)}
-                    className={`px-4 py-2 rounded-lg font-black transition ${
-                      jornadaAtiva?.id === j.id
-                        ? 'bg-emerald-500 text-slate-900'
-                        : 'bg-slate-900 text-slate-500 hover:bg-slate-700'
-                    }`}
-                  >
-                    {j.numero}
-                  </button>
-                ))}
+          <div className="mb-8 flex items-center justify-between flex-wrap gap-4">
+            
+            <div className="flex items-center gap-4 bg-slate-800/50 p-3 rounded-xl border border-slate-700 w-fit">
+              <span className="text-slate-400 font-bold ml-2 uppercase text-xs tracking-widest">Jornada Ativa:</span>
+              {jornadas.length === 0 ? (
+                <span className="text-slate-500 text-xs font-bold italic">Nenhuma jornada criada</span>
+              ) : (
+                <div className="flex gap-2">
+                  {jornadas.map(j => (
+                    <button
+                      key={j.id}
+                      onClick={() => setJornadaAtiva(j)}
+                      className={`px-4 py-2 rounded-lg font-black transition ${
+                        jornadaAtiva?.id === j.id
+                          ? 'bg-emerald-500 text-slate-900'
+                          : 'bg-slate-900 text-slate-500 hover:bg-slate-700'
+                      }`}
+                    >
+                      {j.numero}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* O BOTÃO DA ROLETA DE SORTEIO */}
+            {abaAtiva === 'apostar' && jogadores.length > 0 && (
+              <div className="flex gap-3">
+                <button
+                  onClick={sortearProximoApostador}
+                  disabled={isSorteando}
+                  className={`font-black px-6 py-3 rounded-xl shadow-lg transition-all flex items-center gap-3 text-sm uppercase tracking-wider border-2 ${
+                    isSorteando 
+                      ? 'bg-slate-800 text-slate-500 border-slate-700 cursor-not-allowed' 
+                      : 'bg-amber-500 hover:bg-amber-400 text-slate-950 border-amber-400'
+                  }`}
+                >
+                  <span className={isSorteando ? 'animate-spin' : 'animate-bounce'}>🎲</span> 
+                  {isSorteando ? 'A Sortear...' : 'Sortear Quem Aposta Agora'}
+                </button>
               </div>
             )}
+
           </div>
         )}
 
@@ -419,15 +527,19 @@ export default function Home() {
                 const jaApostouTudo = jogos.length > 0 && jogos.every(jg => 
                   apostas.some(a => a.jogador_id === jogador.id && a.jogo_id === jg.id)
                 );
+                
+                const isOnRoulette = roletaId === jogador.id;
 
                 return (
                   <button
                     key={jogador.id}
                     onClick={() => abrirModalAposta(jogador)}
-                    className={`group relative flex flex-col items-center justify-center p-8 rounded-2xl border-2 transition-all hover:scale-105 ${
-                      jaApostouTudo 
-                        ? 'bg-emerald-900/20 border-emerald-500/50' 
-                        : 'bg-slate-800 border-slate-700 hover:border-emerald-500'
+                    className={`group relative flex flex-col items-center justify-center p-8 rounded-2xl border-4 transition-all duration-150 ${
+                      isOnRoulette 
+                        ? 'bg-amber-500/20 border-amber-500 shadow-[0_0_30px_rgba(245,158,11,0.6)] scale-110 z-10' 
+                        : jaApostouTudo 
+                          ? 'bg-emerald-900/20 border-emerald-500/50 hover:scale-105' 
+                          : 'bg-slate-800 border-slate-700 hover:border-emerald-500 hover:scale-105'
                     }`}
                   >
                     {jaApostouTudo && (
@@ -440,15 +552,15 @@ export default function Home() {
                       <img 
                         src={jogador.foto_url} 
                         alt={jogador.nome} 
-                        className="w-24 h-24 rounded-full mb-4 object-cover border-4 border-slate-800 group-hover:border-emerald-500 transition-colors" 
+                        className={`w-24 h-24 rounded-full mb-4 object-cover border-4 transition-colors ${isOnRoulette ? 'border-amber-400 shadow-xl' : 'border-slate-800 group-hover:border-emerald-500'}`} 
                       />
                     ) : (
-                      <div className="w-24 h-24 bg-slate-700 rounded-full mb-4 flex items-center justify-center text-4xl font-black text-slate-400 border-4 border-slate-800 group-hover:border-emerald-500 transition-colors">
+                      <div className={`w-24 h-24 bg-slate-700 rounded-full mb-4 flex items-center justify-center text-4xl font-black text-slate-400 border-4 transition-colors ${isOnRoulette ? 'border-amber-400 text-amber-400 shadow-xl' : 'border-slate-800 group-hover:border-emerald-500'}`}>
                         {jogador.nome.charAt(0).toUpperCase()}
                       </div>
                     )}
 
-                    <span className="text-xl font-bold">{jogador.nome}</span>
+                    <span className={`text-xl font-bold ${isOnRoulette ? 'text-amber-400' : ''}`}>{jogador.nome}</span>
                     <span className={`text-sm mt-2 font-medium ${jaApostouTudo ? 'text-emerald-400' : 'text-slate-500'}`}>
                       {jaApostouTudo ? 'Apostas Registadas' : 'A aguardar apostas'}
                     </span>
@@ -479,10 +591,16 @@ export default function Home() {
                   {jogos.map(jogo => (
                     <tr key={jogo.id} className="hover:bg-slate-800/50 transition-colors">
                       <td className="p-4 font-bold">
-                        <div className="flex flex-col">
-                          <span className="text-slate-200">{jogo.equipa_casa}</span>
-                          <span className="text-slate-500 text-sm">vs</span>
-                          <span className="text-slate-200">{jogo.equipa_fora}</span>
+                        <div className="flex flex-col gap-1">
+                          <div className="flex items-center gap-2">
+                            {renderBadge(jogo.equipa_casa, 'w-5 h-5')}
+                            <span className="text-slate-200">{jogo.equipa_casa}</span>
+                          </div>
+                          <span className="text-slate-500 text-xs pl-7">vs</span>
+                          <div className="flex items-center gap-2">
+                            {renderBadge(jogo.equipa_fora, 'w-5 h-5')}
+                            <span className="text-slate-200">{jogo.equipa_fora}</span>
+                          </div>
                         </div>
                       </td>
                       <td className="p-4 text-center">
@@ -561,7 +679,6 @@ export default function Home() {
           <div className="space-y-8">
             <h2 className="text-3xl font-black mb-8 text-center text-sky-400 drop-shadow-md">📊 Curiosidades e Estatísticas</h2>
             
-            {/* Destaques Globais */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-6xl mx-auto">
               <div className="bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-xl flex items-center gap-6">
                 <div className="text-6xl">👑</div>
@@ -583,13 +700,17 @@ export default function Home() {
                 <div className="text-6xl">⭐</div>
                 <div>
                   <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-1">Equipa D&apos;Ouro</h3>
-                  <span className="text-2xl font-black text-emerald-400">{estatisticas.melhorEquipaJoker}</span>
+                  <div className="flex items-center gap-2 mt-1">
+                    {renderBadge(estatisticas.melhorEquipaJokerNome, 'w-8 h-8')}
+                    <span className="text-2xl font-black text-emerald-400">
+                      {estatisticas.melhorEquipaJokerPts > 0 ? `${estatisticas.melhorEquipaJokerNome} (+${estatisticas.melhorEquipaJokerPts}pts)` : '-'}
+                    </span>
+                  </div>
                   <p className="text-xs text-slate-500 mt-1">A equipa que mais pontuou como Joker.</p>
                 </div>
               </div>
             </div>
 
-            {/* Tabela de Detalhes Individuais */}
             <div className="max-w-6xl mx-auto bg-slate-800 border border-slate-700 rounded-2xl overflow-hidden shadow-2xl mt-8">
               <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse">
@@ -617,8 +738,22 @@ export default function Home() {
                         </td>
                         <td className="p-4 text-center font-black text-xl text-amber-500">{j.jokersCertos}</td>
                         <td className="p-4 text-center font-black text-xl text-sky-400">{j.empatesCertos}</td>
-                        <td className="p-4 font-bold text-emerald-300">{j.equipaTalisma}</td>
-                        <td className="p-4 font-bold text-rose-300">{j.equipaApostarContra}</td>
+                        <td className="p-4 font-bold text-emerald-300">
+                          {j.equipaTalismaPts > 0 ? (
+                            <div className="flex items-center gap-2">
+                              {renderBadge(j.equipaTalismaNome, 'w-5 h-5')}
+                              <span>{j.equipaTalismaNome} (+{j.equipaTalismaPts}pts)</span>
+                            </div>
+                          ) : '-'}
+                        </td>
+                        <td className="p-4 font-bold text-rose-300">
+                          {j.equipaApostarContraPts > 0 ? (
+                            <div className="flex items-center gap-2">
+                              {renderBadge(j.equipaApostarContraNome, 'w-5 h-5')}
+                              <span>{j.equipaApostarContraNome} (+{j.equipaApostarContraPts}pts)</span>
+                            </div>
+                          ) : '-'}
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -663,9 +798,26 @@ export default function Home() {
                     <span>2. Adicionar Jogo</span>
                     <span className="text-slate-500">Jornada {jornadaAtiva.numero}</span>
                   </h3>
+                  
                   <div className="space-y-4">
-                    <input type="text" placeholder="Equipa da Casa" className="w-full bg-slate-900 border border-slate-700 p-4 rounded-xl text-lg font-bold focus:border-emerald-500 outline-none" value={equipaCasa} onChange={e => setEquipaCasa(e.target.value)} />
-                    <input type="text" placeholder="Equipa Fora" className="w-full bg-slate-900 border border-slate-700 p-4 rounded-xl text-lg font-bold focus:border-emerald-500 outline-none" value={equipaFora} onChange={e => setEquipaFora(e.target.value)} />
+                    <select 
+                      className="w-full bg-slate-900 border border-slate-700 p-4 rounded-xl text-lg font-bold focus:border-emerald-500 outline-none appearance-none" 
+                      value={equipaCasa} 
+                      onChange={e => setEquipaCasa(e.target.value)}
+                    >
+                      <option value="" disabled>Equipa da Casa</option>
+                      {EQUIPAS_LISTA.map(eq => <option key={eq} value={eq}>{eq}</option>)}
+                    </select>
+
+                    <select 
+                      className="w-full bg-slate-900 border border-slate-700 p-4 rounded-xl text-lg font-bold focus:border-emerald-500 outline-none appearance-none" 
+                      value={equipaFora} 
+                      onChange={e => setEquipaFora(e.target.value)}
+                    >
+                      <option value="" disabled>Equipa de Fora</option>
+                      {EQUIPAS_LISTA.map(eq => <option key={eq} value={eq}>{eq}</option>)}
+                    </select>
+                    
                     <button onClick={adicionarJogo} className="w-full bg-emerald-500 hover:bg-emerald-400 text-slate-900 font-black p-4 rounded-xl transition text-lg mt-2">+ Inserir Jogo na Grelha</button>
                   </div>
                 </div>
@@ -688,19 +840,24 @@ export default function Home() {
                         <div key={jogo.id} className="bg-slate-900 p-4 rounded-xl border border-slate-800 space-y-3">
                           {estaEditando ? (
                             <div className="flex gap-2 items-center">
-                              <input 
-                                type="text" 
+                              <select 
                                 value={editEquipaCasa} 
                                 onChange={e => setEditEquipaCasa(e.target.value)}
-                                className="flex-1 bg-slate-950 border border-slate-700 p-2 rounded text-xs font-bold"
-                              />
+                                className="flex-1 bg-slate-950 border border-slate-700 p-2 rounded text-xs font-bold appearance-none"
+                              >
+                                {EQUIPAS_LISTA.map(eq => <option key={eq} value={eq}>{eq}</option>)}
+                              </select>
+                              
                               <span className="text-slate-500 text-xs font-bold">v</span>
-                              <input 
-                                type="text" 
+                              
+                              <select 
                                 value={editEquipaFora} 
                                 onChange={e => setEditEquipaFora(e.target.value)}
-                                className="flex-1 bg-slate-950 border border-slate-700 p-2 rounded text-xs font-bold"
-                              />
+                                className="flex-1 bg-slate-950 border border-slate-700 p-2 rounded text-xs font-bold appearance-none"
+                              >
+                                {EQUIPAS_LISTA.map(eq => <option key={eq} value={eq}>{eq}</option>)}
+                              </select>
+
                               <button onClick={() => guardarEdicaoJogo(jogo.id)} className="bg-emerald-500 text-slate-950 px-3 py-2 rounded text-xs font-black">
                                 💾
                               </button>
@@ -710,7 +867,13 @@ export default function Home() {
                             </div>
                           ) : (
                             <div className="flex items-center justify-between">
-                              <span className="font-bold text-slate-300">{jogo.equipa_casa} v {jogo.equipa_fora}</span>
+                              <div className="flex items-center gap-2 font-bold text-slate-300">
+                                {renderBadge(jogo.equipa_casa, 'w-6 h-6')}
+                                <span>{jogo.equipa_casa}</span>
+                                <span className="text-slate-500 text-xs mx-1">v</span>
+                                {renderBadge(jogo.equipa_fora, 'w-6 h-6')}
+                                <span>{jogo.equipa_fora}</span>
+                              </div>
                               
                               <div className="flex items-center gap-2">
                                 <div className="flex gap-1">
@@ -721,7 +884,7 @@ export default function Home() {
                                   ))}
                                 </div>
                                 
-                                <button onClick={() => iniciarEdicaoJogo(jogo)} className="text-slate-400 hover:text-white p-2 bg-slate-800 hover:bg-slate-700 rounded-lg transition" title="Editar Nomes">
+                                <button onClick={() => iniciarEdicaoJogo(jogo)} className="text-slate-400 hover:text-white p-2 bg-slate-800 hover:bg-slate-700 rounded-lg transition" title="Editar Equipas">
                                   ✏️
                                 </button>
                                 <button onClick={() => apagarJogo(jogo.id)} className="text-red-400 hover:text-red-300 p-2 bg-red-500/10 hover:bg-red-500/20 rounded-lg transition" title="Apagar Jogo">
@@ -834,10 +997,16 @@ export default function Home() {
                 return (
                   <div key={jogo.id} className={`flex items-center justify-between p-4 rounded-2xl border-2 transition ${isJoker ? 'bg-amber-900/10 border-amber-500/50' : 'bg-slate-800/50 border-slate-700 hover:border-slate-600'}`}>
                     
-                    <div className="flex-1 text-2xl font-bold">
-                      <span className="text-white">{jogo.equipa_casa}</span>
-                      <span className="text-slate-600 mx-4 text-lg">vs</span>
-                      <span className="text-white">{jogo.equipa_fora}</span>
+                    <div className="flex-1 text-2xl font-bold flex items-center gap-3">
+                      <div className="flex items-center gap-2">
+                        {renderBadge(jogo.equipa_casa, 'w-10 h-10')}
+                        <span className="text-white">{jogo.equipa_casa}</span>
+                      </div>
+                      <span className="text-slate-600 mx-2 text-lg">vs</span>
+                      <div className="flex items-center gap-2">
+                        {renderBadge(jogo.equipa_fora, 'w-10 h-10')}
+                        <span className="text-white">{jogo.equipa_fora}</span>
+                      </div>
                     </div>
 
                     <div className="flex items-center gap-6">
