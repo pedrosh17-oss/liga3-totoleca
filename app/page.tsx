@@ -27,6 +27,12 @@ const EQUIPAS_MAP: Record<string, string> = {
   'Vitória Sernache': '/equipas/vitoriasernache.png'
 };
 
+// PALETA DE CORES ÚNICAS PARA OS JOGADORES NO GRÁFICO
+const CORES_JOGADORES = [
+  '#10b981', '#f59e0b', '#06b6d4', '#f43f5e', '#8b5cf6',
+  '#ec4899', '#f97316', '#14b8a6', '#3b82f6', '#a855f7'
+];
+
 // ⚽ DIVISÃO OFICIAL DAS DUAS SÉRIES (10 EQUIPAS CADA)
 const SERIE_A = [
   'AD Marco 09', 'Fafe', 'Leça FC', 'Paços de Ferreira', 'S. João Ver',
@@ -223,6 +229,10 @@ export default function Home() {
   const [jogadorSimuladoId, setJogadorSimuladoId] = useState<string | 'real'>('real');
   const [serieAtivaView, setSerieAtivaView] = useState<'A' | 'B'>('A');
 
+  // Estado para o Slider do Gráfico da Linha do Tempo e Filtro de Visibilidade dos Jogadores
+  const [jornadaGraficoFiltro, setJornadaGraficoFiltro] = useState<number>(1);
+  const [jogadoresVisiveisGrafico, setJogadoresVisiveisGrafico] = useState<string[]>([]);
+
   // Autenticação de Admin (PIN)
   const [isAdminAuth, setIsAdminAuth] = useState(false);
   const [pinInput, setPinInput] = useState('');
@@ -278,6 +288,18 @@ export default function Home() {
       if (data) setTodosJogos(data);
     });
   }, [abaAtiva]);
+
+  useEffect(() => {
+    if (jornadas.length > 0) {
+      setJornadaGraficoFiltro(jornadas.length);
+    }
+  }, [jornadas]);
+
+  useEffect(() => {
+    if (jogadores.length > 0 && jogadoresVisiveisGrafico.length === 0) {
+      setJogadoresVisiveisGrafico(jogadores.map(j => j.id));
+    }
+  }, [jogadores]);
 
   async function carregarDadosGerais() {
     const { data: dJogadores } = await supabase.from('jogadores').select('*').order('nome');
@@ -745,6 +767,51 @@ export default function Home() {
   const estatisticas = calcularEstatisticas();
   const ranking = estatisticas.statsPorJogador;
 
+  // CÁLCULO DE PONTOS ACUMULADOS JORNADA A JORNADA
+  const jornadasOrdenadas = [...jornadas].sort((a, b) => a.numero - b.numero);
+
+  const evolucaoPontos = jogadores.map((jogador, index) => {
+    let acumulado = 0;
+    const historico = jornadasOrdenadas.map((jornada) => {
+      const jogosDaJornada = todosJogos.filter(jg => jg.jornada_id === jornada.id);
+      jogosDaJornada.forEach(jogo => {
+        if (jogo.resultado_final) {
+          const aposta = apostas.find(a => a.jogador_id === jogador.id && a.jogo_id === jogo.id);
+          if (aposta && aposta.palpite === jogo.resultado_final) {
+            acumulado += aposta.tem_joker ? 2 : 1;
+          }
+        }
+      });
+      return { jornadaNum: jornada.numero, acumulado };
+    });
+
+    const infoNoSlider = historico.find(h => h.jornadaNum === jornadaGraficoFiltro) || { acumulado: 0 };
+
+    return {
+      jogador,
+      cor: CORES_JOGADORES[index % CORES_JOGADORES.length],
+      historico,
+      pontosNoSlider: infoNoSlider.acumulado,
+      pontosAtuais: acumulado
+    };
+  });
+
+  // FUNÇÃO PARA ALTERNAR A VISIBILIDADE DE UM JOGADOR NO GRÁFICO
+  const alternarVisibilidadeJogador = (id: string) => {
+    setJogadoresVisiveisGrafico(prev => 
+      prev.includes(id) ? prev.filter(jId => jId !== id) : [...prev, id]
+    );
+  };
+
+  // FUNÇÃO PARA SELECIONAR OU DESSELECIONAR TODOS
+  const alternarTodosJogadoresGrafico = () => {
+    if (jogadoresVisiveisGrafico.length === jogadores.length) {
+      setJogadoresVisiveisGrafico([]);
+    } else {
+      setJogadoresVisiveisGrafico(jogadores.map(j => j.id));
+    }
+  };
+
   // 6. CÁLCULO DA CLASSIFICAÇÃO REAL E IMAGINÁRIA DA LIGA DA VERDADE
   function calcularTabelaLiga(equipasLista: string[], jogadorId?: string) {
     const tabela: Record<string, { nome: string; j: number; v: number; e: number; d: number; pts: number }> = {};
@@ -807,7 +874,6 @@ export default function Home() {
       <header className="bg-slate-950 border-b border-slate-800 sticky top-0 z-40 shadow-xl">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 sm:py-4 flex flex-col md:flex-row items-center justify-between gap-3 sm:gap-4">
           
-          {/* LOGOTIPO AUMENTADO */}
           <div className="flex items-center shrink-0 cursor-pointer" onClick={() => setAbaAtiva('apostar')}>
             <img 
               src="/logo.png" 
@@ -936,7 +1002,6 @@ export default function Home() {
                       </div>
                     ) : null}
                     
-                    {/* AVATAR COM FORMATO NATURAL RECORTADO (SEM CÍRCULO) */}
                     {jogador.foto_url ? (
                       <img 
                         src={jogador.foto_url} 
@@ -1209,12 +1274,239 @@ export default function Home() {
           </div>
         )}
 
-        {/* ================= ABA 5: STATS ================= */}
+        {/* ================= ABA 5: STATS E EVOLUÇÃO INTERATIVA DO RANKING ================= */}
         {abaAtiva === 'estatisticas' && (
-          <div className="space-y-8">
-            <h2 className="text-2xl sm:text-3xl font-black mb-8 text-center text-sky-400 drop-shadow-md">📊 Stats</h2>
+          <div className="space-y-8 max-w-6xl mx-auto">
+            <h2 className="text-2xl sm:text-3xl font-black mb-6 text-center text-sky-400 drop-shadow-md">📊 Stats e Curiosidades</h2>
             
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-6xl mx-auto">
+            {/* 📈 GRÁFICO INTERATIVO COM SLIDER / TIMELINE DE AVATARES */}
+            <div className="bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-2xl space-y-6">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-slate-700 pb-4">
+                <h3 className="text-xl font-black text-emerald-400 uppercase tracking-widest">📈 EVOLUÇÃO DO RANKING</h3>
+
+                {/* CONTROLO DO SLIDER DA LINHA DO TEMPO */}
+                {jornadasOrdenadas.length > 0 && (
+                  <div className="w-full sm:w-72 bg-slate-900 p-3 rounded-xl border border-slate-700 space-y-1.5">
+                    <div className="flex justify-between text-xs font-bold">
+                      <span className="text-slate-400">Jornada</span>
+                      <span className="text-amber-400 text-sm font-black">
+                        📍 J{jornadaGraficoFiltro}
+                      </span>
+                    </div>
+                    <input
+                      type="range"
+                      min={1}
+                      max={Math.max(1, jornadasOrdenadas.length)}
+                      value={jornadaGraficoFiltro}
+                      onChange={(e) => setJornadaGraficoFiltro(Number(e.target.value))}
+                      className="w-full accent-emerald-500 cursor-pointer h-2 bg-slate-950 rounded-lg outline-none"
+                    />
+                  </div>
+                )}
+              </div>
+
+              {/* LEGENDA INTERATIVA DE CORES E SELEÇÃO DE JOGADORES */}
+              <div className="flex flex-wrap items-center gap-3 bg-slate-900/60 p-4 rounded-xl border border-slate-800">
+                
+                {/* BOTÃO PARA SELECIONAR / DESSELECIONAR TODOS */}
+                <button
+                  onClick={alternarTodosJogadoresGrafico}
+                  className="px-3 py-1.5 rounded-lg border text-xs font-black transition-all bg-slate-800 hover:bg-slate-700 text-amber-400 border-amber-500/40 hover:border-amber-400 shrink-0"
+                >
+                  {jogadoresVisiveisGrafico.length === jogadores.length ? '✕ Ocultar Todos' : '✓ Selecionar Todos'}
+                </button>
+
+                <div className="h-6 w-[1px] bg-slate-800 hidden sm:block"></div>
+
+                {/* CARTÕES INDIVIDUAIS CLICÁVEIS */}
+                {evolucaoPontos.map(item => {
+                  const isVisivel = jogadoresVisiveisGrafico.includes(item.jogador.id);
+
+                  return (
+                    <button
+                      key={item.jogador.id}
+                      onClick={() => alternarVisibilidadeJogador(item.jogador.id)}
+                      className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border text-xs font-bold transition-all cursor-pointer ${
+                        isVisivel 
+                          ? 'bg-slate-950 border-slate-700 text-slate-200 shadow-md' 
+                          : 'bg-slate-950/40 border-slate-800 text-slate-600 opacity-40 grayscale hover:opacity-70'
+                      }`}
+                    >
+                      <span 
+                        className="w-3 h-3 rounded-full shrink-0 transition-opacity" 
+                        style={{ backgroundColor: isVisivel ? item.cor : '#475569' }}
+                      ></span>
+                      {item.jogador.foto_url ? (
+                        <img src={item.jogador.foto_url} alt={item.jogador.nome} className="w-5 h-5 object-contain" />
+                      ) : null}
+                      <span>{item.jogador.nome}</span>
+                      <span className={isVisivel ? 'text-emerald-400 ml-1' : 'text-slate-600 ml-1'}>
+                        ({item.pontosNoSlider}pts)
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* GRÁFICO SVG PERSONALIZADO COM AVATARES EM MOVIMENTO */}
+              {jornadasOrdenadas.length === 0 ? (
+                <div className="p-8 text-center text-slate-500 italic text-sm">Cria jornadas para visualizar a curva de evolução do ranking.</div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <div className="min-w-[650px] h-[360px] relative pt-6 pb-2">
+                    {(() => {
+                      const maxPts = Math.max(5, ...evolucaoPontos.map(e => e.pontosAtuais));
+                      const width = 720;
+                      const height = 260;
+                      const padLeft = 45;
+                      const padBottom = 30;
+
+                      // Índice da jornada atual selecionada no slider
+                      const idxSlider = jornadasOrdenadas.findIndex(j => j.numero === jornadaGraficoFiltro);
+                      const activeIdx = idxSlider >= 0 ? idxSlider : 0;
+                      const stepX = (width - padLeft) / Math.max(1, jornadasOrdenadas.length - 1);
+                      const xIndicador = jornadasOrdenadas.length === 1 ? (width + padLeft) / 2 : padLeft + activeIdx * stepX;
+
+                      // Apenas jogadores selecionados na legenda
+                      const jogadoresParaRenderizar = evolucaoPontos.filter(item => 
+                        jogadoresVisiveisGrafico.includes(item.jogador.id)
+                      );
+
+                      return (
+                        <svg viewBox={`0 0 ${width} ${height + padBottom}`} className="w-full h-full overflow-visible">
+                          {/* LINHAS DE GRADE Y (ESCALA DE PONTOS) */}
+                          {[0, 0.25, 0.5, 0.75, 1].map((ratio, i) => {
+                            const val = Math.round(maxPts * (1 - ratio));
+                            const y = ratio * height;
+                            return (
+                              <g key={i}>
+                                <line x1={padLeft} y1={y} x2={width} y2={y} stroke="#334155" strokeDasharray="4 4" strokeWidth="1" />
+                                <text x={padLeft - 10} y={y + 4} fill="#94a3b8" fontSize="11" fontWeight="bold" textAnchor="end">{val}</text>
+                              </g>
+                            );
+                          })}
+
+                          {/* LABELS DO EIXO X (JORNADAS: J1, J2...) */}
+                          {jornadasOrdenadas.map((j, i) => {
+                            const x = jornadasOrdenadas.length === 1 ? (width + padLeft) / 2 : padLeft + i * stepX;
+                            const isSelected = j.numero === jornadaGraficoFiltro;
+
+                            return (
+                              <text 
+                                key={j.id} 
+                                x={x} 
+                                y={height + 22} 
+                                fill={isSelected ? '#f59e0b' : '#94a3b8'} 
+                                fontSize={isSelected ? "13" : "11"} 
+                                fontWeight="black" 
+                                textAnchor="middle"
+                                className="cursor-pointer transition-colors"
+                                onClick={() => setJornadaGraficoFiltro(j.numero)}
+                              >
+                                J{j.numero}
+                              </text>
+                            );
+                          })}
+
+                          {/* LINHA INDICADORA DA JORNADA ATIVA SELECIONADA NO SLIDER (LINHA TRACEJADA LARANJA) */}
+                          <line 
+                            x1={xIndicador} 
+                            y1={0} 
+                            x2={xIndicador} 
+                            y2={height} 
+                            stroke="#f59e0b" 
+                            strokeWidth="2" 
+                            strokeDasharray="6 6"
+                            className="transition-all duration-300"
+                          />
+
+                          {/* DESENHO DAS LINHAS DO GRÁFICO PARA OS JOGADORES ATIVOS */}
+                          {jogadoresParaRenderizar.map(item => {
+                            // Desenha a linha até à jornada selecionada no slider
+                            const historicoAteSlider = item.historico.slice(0, activeIdx + 1);
+
+                            const pointsStr = historicoAteSlider.map((h, i) => {
+                              const x = jornadasOrdenadas.length === 1 ? (width + padLeft) / 2 : padLeft + i * stepX;
+                              const y = height - (h.acumulado / maxPts) * height;
+                              return `${x},${y}`;
+                            }).join(' ');
+
+                            // Posição exata do Avatar na jornada selecionada pelo Slider
+                            const ySlider = height - (item.pontosNoSlider / maxPts) * height;
+
+                            return (
+                              <g key={item.jogador.id}>
+                                {/* Linha de Pontos */}
+                                <polyline
+                                  fill="none"
+                                  stroke={item.cor}
+                                  strokeWidth="3.5"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  points={pointsStr}
+                                  className="transition-all duration-300 drop-shadow-md"
+                                />
+
+                                {/* Círculos de pontos intermédios */}
+                                {historicoAteSlider.map((h, i) => {
+                                  const x = jornadasOrdenadas.length === 1 ? (width + padLeft) / 2 : padLeft + i * stepX;
+                                  const y = height - (h.acumulado / maxPts) * height;
+
+                                  return (
+                                    <circle
+                                      key={i}
+                                      cx={x}
+                                      cy={y}
+                                      r="4"
+                                      fill={item.cor}
+                                      stroke="#0f172a"
+                                      strokeWidth="2"
+                                    />
+                                  );
+                                })}
+
+                                {/* 👤 AVATAR QUE SE MOVE DINAMICAMENTE CONFORME O SLIDER */}
+                                {item.jogador.foto_url ? (
+                                  <g 
+                                    transform={`translate(${xIndicador - 16}, ${ySlider - 16})`}
+                                    className="transition-all duration-300 cursor-pointer"
+                                  >
+                                    <circle cx="16" cy="16" r="18" fill={item.cor} opacity="0.4" />
+                                    <image
+                                      href={item.jogador.foto_url}
+                                      x="0"
+                                      y="0"
+                                      width="32"
+                                      height="32"
+                                      className="drop-shadow-lg hover:scale-125 transition-transform"
+                                    />
+                                    <title>{`${item.jogador.nome}: ${item.pontosNoSlider} pts na J${jornadaGraficoFiltro}`}</title>
+                                  </g>
+                                ) : (
+                                  <g 
+                                    transform={`translate(${xIndicador}, ${ySlider})`}
+                                    className="transition-all duration-300 cursor-pointer"
+                                  >
+                                    <circle r="14" fill={item.cor} stroke="#0f172a" strokeWidth="2" />
+                                    <text textAnchor="middle" dy="4" fill="#ffffff" fontSize="11" fontWeight="bold">
+                                      {item.jogador.nome[0]}
+                                    </text>
+                                    <title>{`${item.jogador.nome}: ${item.pontosNoSlider} pts na J${jornadaGraficoFiltro}`}</title>
+                                  </g>
+                                )}
+                              </g>
+                            );
+                          })}
+                        </svg>
+                      );
+                    })()}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* CARTÕES DE DESTAQUE */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div className="bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-xl flex items-center gap-6">
                 <div className="text-5xl sm:text-6xl">👑</div>
                 <div>
@@ -1246,7 +1538,8 @@ export default function Home() {
               </div>
             </div>
 
-            <div className="max-w-6xl mx-auto bg-slate-800 border border-slate-700 rounded-2xl overflow-hidden shadow-2xl mt-8">
+            {/* TABELA DE DETALHES DE STATS */}
+            <div className="bg-slate-800 border border-slate-700 rounded-2xl overflow-hidden shadow-2xl mt-8">
               <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse min-w-[700px]">
                   <thead>
