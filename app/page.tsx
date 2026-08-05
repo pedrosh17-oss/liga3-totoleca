@@ -176,7 +176,6 @@ function SeletorJogador({ value, onChange, jogadores }: { value: string, onChang
               />
             </div>
             <div className="max-h-56 overflow-y-auto overscroll-contain">
-              {/* OPÇÃO REAL */}
               <div 
                 onClick={() => { onChange('real'); setIsOpen(false); }}
                 className={`flex items-center gap-3 p-2.5 hover:bg-slate-700 cursor-pointer transition border-b border-slate-700/50 ${value === 'real' ? 'bg-emerald-900/30 text-emerald-400' : 'text-slate-200'}`}
@@ -185,7 +184,6 @@ function SeletorJogador({ value, onChange, jogadores }: { value: string, onChang
                 <span className="font-bold text-sm truncate">Real</span>
               </div>
 
-              {/* LISTA DE JOGADORES */}
               {jogadoresFiltrados.map(j => (
                 <div 
                   key={j.id}
@@ -229,7 +227,7 @@ export default function Home() {
   const [isAdminAuth, setIsAdminAuth] = useState(false);
   const [pinInput, setPinInput] = useState('');
   const [mostrarPinModal, setMostrarPinModal] = useState(false);
-  const PIN_CORRETO = '2627';
+  const PIN_CORRETO = '1234';
 
   // Modal de Aposta
   const [jogadorApostar, setJogadorApostar] = useState<any | null>(null);
@@ -805,28 +803,28 @@ export default function Home() {
   return (
     <main className="min-h-screen bg-slate-900 text-slate-100 font-sans selection:bg-emerald-500 selection:text-slate-900">
       
-      {/* 📱 TOP NAVIGATION RESPONSIVA */}
+      {/* 📱 TOP NAVIGATION RESPONSIVA E SEM CORTE */}
       <header className="bg-slate-950 border-b border-slate-800 sticky top-0 z-40 shadow-xl">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex flex-col md:flex-row items-center justify-between gap-4">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 sm:py-4 flex flex-col md:flex-row items-center justify-between gap-3 sm:gap-4">
           
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 shrink-0">
             <span className="text-3xl">⚽</span>
             <h1 className="text-2xl font-black tracking-wider text-white">TOTO<span className="text-emerald-500">LEÇA</span></h1>
           </div>
           
-          <nav className="flex gap-2 overflow-x-auto w-full md:w-auto pb-1 md:pb-0 justify-start md:justify-end [&::-webkit-scrollbar]:hidden">
+          <nav className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto max-w-full w-full md:w-auto pb-1 md:pb-0 justify-start md:justify-end [&::-webkit-scrollbar]:hidden">
             {[
               { id: 'apostar', label: '🎯 Apostas' },
               { id: 'historico', label: '👁️ Histórico' },
               { id: 'ranking', label: '🏆 Ranking Geral' },
               { id: 'classificacao', label: '📈 Liga da Verdade' },
-              { id: 'estatisticas', label: '📊 Curiosidades' },
+              { id: 'estatisticas', label: '📊 Stats' },
               { id: 'admin', label: '⚙️ Painel Gestão' }
             ].map(tab => (
               <button
                 key={tab.id}
                 onClick={() => selecionarAba(tab.id as any)}
-                className={`px-4 sm:px-6 py-2 sm:py-3 rounded-lg font-bold transition-all text-xs sm:text-sm uppercase tracking-widest whitespace-nowrap shrink-0 ${
+                className={`px-3 sm:px-5 py-2 sm:py-2.5 rounded-lg font-bold transition-all text-xs sm:text-sm uppercase tracking-wider whitespace-nowrap shrink-0 ${
                   abaAtiva === tab.id 
                     ? 'bg-emerald-500 text-slate-950 shadow-[0_0_15px_rgba(16,185,129,0.3)]' 
                     : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
@@ -888,7 +886,7 @@ export default function Home() {
                   }`}
                 >
                   <span className={isSorteando ? 'animate-spin' : 'animate-bounce'}>🎲</span> 
-                  {isSorteando ? 'A Sortear...' : 'Sortear Quem Aposta Agora'}
+                  {isSorteando ? 'A Sortear...' : 'Sortear'}
                 </button>
               </div>
             )}
@@ -1203,10 +1201,10 @@ export default function Home() {
           </div>
         )}
 
-        {/* ================= ABA 5: ESTATÍSTICAS ================= */}
+        {/* ================= ABA 5: STATS ================= */}
         {abaAtiva === 'estatisticas' && (
           <div className="space-y-8">
-            <h2 className="text-2xl sm:text-3xl font-black mb-8 text-center text-sky-400 drop-shadow-md">📊 Curiosidades e Estatísticas</h2>
+            <h2 className="text-2xl sm:text-3xl font-black mb-8 text-center text-sky-400 drop-shadow-md">📊 Stats</h2>
             
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-6xl mx-auto">
               <div className="bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-xl flex items-center gap-6">
