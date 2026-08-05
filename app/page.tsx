@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 
 // 🛡️ DICIONÁRIO DAS 20 EQUIPAS E RESPETIVOS EMBLEMAS (Na pasta /public/equipas/)
@@ -50,17 +50,17 @@ function SeletorEquipa({ value, onChange, placeholder, pequeno = false }: { valu
       {/* Botão de abrir/fechar */}
       <div 
         onClick={() => { setIsOpen(!isOpen); setSearch(''); }}
-        className={`w-full bg-slate-900 border border-slate-700 flex items-center justify-between cursor-pointer focus:border-emerald-500 outline-none transition-colors hover:border-slate-500 ${pequeno ? 'p-2 rounded-lg text-xs font-bold' : 'p-4 rounded-xl text-lg font-bold'}`}
+        className={`w-full bg-slate-900 border border-slate-700 flex items-center justify-between cursor-pointer focus:border-emerald-500 outline-none transition-colors hover:border-slate-500 ${pequeno ? 'p-2 sm:p-3 rounded-lg text-xs sm:text-sm font-bold' : 'p-4 rounded-xl text-base sm:text-lg font-bold'}`}
       >
         {value ? (
-          <div className="flex items-center gap-2">
-            {renderBadge(value, pequeno ? 'w-4 h-4' : 'w-6 h-6')}
+          <div className="flex items-center gap-2 overflow-hidden">
+            {renderBadge(value, pequeno ? 'w-4 h-4 sm:w-5 sm:h-5' : 'w-6 h-6')}
             <span className="truncate text-white">{value}</span>
           </div>
         ) : (
           <span className="text-slate-500 truncate">{placeholder}</span>
         )}
-        <span className={`text-slate-500 ml-2 transition-transform ${isOpen ? 'rotate-180' : ''}`}>▼</span>
+        <span className={`text-slate-500 ml-2 shrink-0 transition-transform ${isOpen ? 'rotate-180' : ''}`}>▼</span>
       </div>
 
       {/* Dropdown Menu */}
@@ -502,15 +502,17 @@ export default function Home() {
   return (
     <main className="min-h-screen bg-slate-900 text-slate-100 font-sans selection:bg-emerald-500 selection:text-slate-900">
       
-      {/* TOP NAVIGATION */}
+      {/* 📱 TOP NAVIGATION RESPONSIVA */}
       <header className="bg-slate-950 border-b border-slate-800 sticky top-0 z-40 shadow-xl">
-        <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex flex-col md:flex-row items-center justify-between gap-4">
+          
           <div className="flex items-center gap-3">
             <span className="text-3xl">⚽</span>
             <h1 className="text-2xl font-black tracking-wider text-white">TOTO<span className="text-emerald-500">LEÇA</span></h1>
           </div>
           
-          <nav className="flex gap-2">
+          {/* Menu Horizontal com Scroll no Mobile */}
+          <nav className="flex gap-2 overflow-x-auto w-full md:w-auto pb-1 md:pb-0 justify-start md:justify-end [&::-webkit-scrollbar]:hidden">
             {[
               { id: 'apostar', label: '🎯 Apostas' },
               { id: 'historico', label: '👁️ Histórico' },
@@ -521,7 +523,7 @@ export default function Home() {
               <button
                 key={tab.id}
                 onClick={() => selecionarAba(tab.id as any)}
-                className={`px-6 py-3 rounded-lg font-bold transition-all text-sm uppercase tracking-widest ${
+                className={`px-4 sm:px-6 py-2 sm:py-3 rounded-lg font-bold transition-all text-xs sm:text-sm uppercase tracking-widest whitespace-nowrap shrink-0 ${
                   abaAtiva === tab.id 
                     ? 'bg-emerald-500 text-slate-950 shadow-[0_0_15px_rgba(16,185,129,0.3)]' 
                     : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
@@ -531,26 +533,27 @@ export default function Home() {
               </button>
             ))}
           </nav>
+
         </div>
       </header>
 
-      <div className="max-w-7xl mx-auto px-6 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
         
-        {/* SELETOR DE JORNADAS E BOTÃO DE SORTEIO */}
+        {/* 📱 SELETOR DE JORNADAS E BOTÃO DE SORTEIO RESPONSIVOS */}
         {(abaAtiva === 'apostar' || abaAtiva === 'historico' || abaAtiva === 'admin') && (
-          <div className="mb-8 flex items-center justify-between flex-wrap gap-4">
+          <div className="mb-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 w-full">
             
-            <div className="flex items-center gap-4 bg-slate-800/50 p-3 rounded-xl border border-slate-700 w-fit">
+            <div className="flex flex-wrap items-center gap-2 sm:gap-4 bg-slate-800/50 p-2 sm:p-3 rounded-xl border border-slate-700 w-full sm:w-fit">
               <span className="text-slate-400 font-bold ml-2 uppercase text-xs tracking-widest">Jornada Ativa:</span>
               {jornadas.length === 0 ? (
                 <span className="text-slate-500 text-xs font-bold italic">Nenhuma jornada criada</span>
               ) : (
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2">
                   {jornadas.map(j => (
                     <button
                       key={j.id}
                       onClick={() => setJornadaAtiva(j)}
-                      className={`px-4 py-2 rounded-lg font-black transition ${
+                      className={`px-4 py-2 rounded-lg font-black transition text-sm ${
                         jornadaAtiva?.id === j.id
                           ? 'bg-emerald-500 text-slate-900'
                           : 'bg-slate-900 text-slate-500 hover:bg-slate-700'
@@ -565,11 +568,11 @@ export default function Home() {
 
             {/* O BOTÃO DA ROLETA DE SORTEIO */}
             {abaAtiva === 'apostar' && jogadores.length > 0 && (
-              <div className="flex gap-3">
+              <div className="flex gap-3 w-full sm:w-auto">
                 <button
                   onClick={sortearProximoApostador}
                   disabled={isSorteando}
-                  className={`font-black px-6 py-3 rounded-xl shadow-lg transition-all flex items-center gap-3 text-sm uppercase tracking-wider border-2 ${
+                  className={`w-full sm:w-auto font-black px-6 py-3 rounded-xl shadow-lg transition-all flex items-center justify-center gap-3 text-xs sm:text-sm uppercase tracking-wider border-2 ${
                     isSorteando 
                       ? 'bg-slate-800 text-slate-500 border-slate-700 cursor-not-allowed' 
                       : 'bg-amber-500 hover:bg-amber-400 text-slate-950 border-amber-400'
@@ -587,7 +590,7 @@ export default function Home() {
         {/* ================= ABA 1: APOSTAS ================= */}
         {abaAtiva === 'apostar' && (
           <div>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
               {jogadores.map(jogador => {
                 const jaApostouTudo = jogos.length > 0 && jogos.every(jg => 
                   apostas.some(a => a.jogador_id === jogador.id && a.jogo_id === jg.id)
@@ -599,16 +602,16 @@ export default function Home() {
                   <button
                     key={jogador.id}
                     onClick={() => abrirModalAposta(jogador)}
-                    className={`group relative flex flex-col items-center justify-center p-8 rounded-2xl border-4 transition-all duration-150 ${
+                    className={`group relative flex flex-col items-center justify-center p-4 sm:p-8 rounded-2xl border-4 transition-all duration-150 ${
                       isOnRoulette 
-                        ? 'bg-amber-500/20 border-amber-500 shadow-[0_0_30px_rgba(245,158,11,0.6)] scale-110 z-10' 
+                        ? 'bg-amber-500/20 border-amber-500 shadow-[0_0_30px_rgba(245,158,11,0.6)] scale-105 sm:scale-110 z-10' 
                         : jaApostouTudo 
-                          ? 'bg-emerald-900/20 border-emerald-500/50 hover:scale-105' 
-                          : 'bg-slate-800 border-slate-700 hover:border-emerald-500 hover:scale-105'
+                          ? 'bg-emerald-900/20 border-emerald-500/50 sm:hover:scale-105' 
+                          : 'bg-slate-800 border-slate-700 hover:border-emerald-500 sm:hover:scale-105'
                     }`}
                   >
                     {jaApostouTudo && (
-                      <div className="absolute top-4 right-4 bg-emerald-500 text-slate-900 w-8 h-8 flex items-center justify-center rounded-full font-black text-xl shadow-lg">
+                      <div className="absolute top-2 right-2 sm:top-4 sm:right-4 bg-emerald-500 text-slate-900 w-6 h-6 sm:w-8 sm:h-8 flex items-center justify-center rounded-full font-black text-sm sm:text-xl shadow-lg">
                         ✓
                       </div>
                     )}
@@ -617,16 +620,16 @@ export default function Home() {
                       <img 
                         src={jogador.foto_url} 
                         alt={jogador.nome} 
-                        className={`w-24 h-24 rounded-full mb-4 object-cover border-4 transition-colors ${isOnRoulette ? 'border-amber-400 shadow-xl' : 'border-slate-800 group-hover:border-emerald-500'}`} 
+                        className={`w-16 h-16 sm:w-24 sm:h-24 rounded-full mb-2 sm:mb-4 object-cover border-4 transition-colors ${isOnRoulette ? 'border-amber-400 shadow-xl' : 'border-slate-800 group-hover:border-emerald-500'}`} 
                       />
                     ) : (
-                      <div className={`w-24 h-24 bg-slate-700 rounded-full mb-4 flex items-center justify-center text-4xl font-black text-slate-400 border-4 transition-colors ${isOnRoulette ? 'border-amber-400 text-amber-400 shadow-xl' : 'border-slate-800 group-hover:border-emerald-500'}`}>
+                      <div className={`w-16 h-16 sm:w-24 sm:h-24 bg-slate-700 rounded-full mb-2 sm:mb-4 flex items-center justify-center text-2xl sm:text-4xl font-black text-slate-400 border-4 transition-colors ${isOnRoulette ? 'border-amber-400 text-amber-400 shadow-xl' : 'border-slate-800 group-hover:border-emerald-500'}`}>
                         {jogador.nome.charAt(0).toUpperCase()}
                       </div>
                     )}
 
-                    <span className={`text-xl font-bold ${isOnRoulette ? 'text-amber-400' : ''}`}>{jogador.nome}</span>
-                    <span className={`text-sm mt-2 font-medium ${jaApostouTudo ? 'text-emerald-400' : 'text-slate-500'}`}>
+                    <span className={`text-base sm:text-xl font-bold text-center ${isOnRoulette ? 'text-amber-400' : ''}`}>{jogador.nome}</span>
+                    <span className={`text-[10px] sm:text-sm mt-1 sm:mt-2 font-medium text-center ${jaApostouTudo ? 'text-emerald-400' : 'text-slate-500'}`}>
                       {jaApostouTudo ? 'Apostas Registadas' : 'A aguardar apostas'}
                     </span>
                   </button>
@@ -640,7 +643,7 @@ export default function Home() {
         {abaAtiva === 'historico' && (
           <div className="bg-slate-800 border border-slate-700 rounded-2xl overflow-hidden shadow-2xl">
             <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
+              <table className="w-full text-left border-collapse min-w-[600px]">
                 <thead>
                   <tr className="bg-slate-950 border-b-2 border-slate-700">
                     <th className="p-4 font-black text-slate-300 w-64 uppercase tracking-widest text-sm">Jogo</th>
@@ -659,12 +662,12 @@ export default function Home() {
                         <div className="flex flex-col gap-1">
                           <div className="flex items-center gap-2">
                             {renderBadge(jogo.equipa_casa, 'w-5 h-5')}
-                            <span className="text-slate-200">{jogo.equipa_casa}</span>
+                            <span className="text-slate-200 truncate">{jogo.equipa_casa}</span>
                           </div>
                           <span className="text-slate-500 text-xs pl-7">vs</span>
                           <div className="flex items-center gap-2">
                             {renderBadge(jogo.equipa_fora, 'w-5 h-5')}
-                            <span className="text-slate-200">{jogo.equipa_fora}</span>
+                            <span className="text-slate-200 truncate">{jogo.equipa_fora}</span>
                           </div>
                         </div>
                       </td>
@@ -694,7 +697,7 @@ export default function Home() {
                                   {aposta.palpite}
                                 </span>
                                 {aposta.tem_joker && (
-                                  <span className="text-amber-400 text-sm font-black drop-shadow-md">⭐ JOKER</span>
+                                  <span className="text-amber-400 text-xs font-black drop-shadow-md">⭐ JOKER</span>
                                 )}
                               </div>
                             ) : (
@@ -714,25 +717,25 @@ export default function Home() {
         {/* ================= ABA 3: RANKING ================= */}
         {abaAtiva === 'ranking' && (
           <div className="max-w-3xl mx-auto space-y-4">
-            <h2 className="text-3xl font-black mb-8 text-center text-amber-400 drop-shadow-md">🏆 Tabela Classificativa</h2>
+            <h2 className="text-2xl sm:text-3xl font-black mb-8 text-center text-amber-400 drop-shadow-md">🏆 Tabela Classificativa</h2>
             {ranking.map((j, idx) => (
-              <div key={j.id} className="flex items-center justify-between p-6 bg-slate-800 border border-slate-700 rounded-2xl shadow-lg">
-                <div className="flex items-center gap-6">
-                  <span className={`text-4xl font-black w-12 text-center ${idx === 0 ? 'text-amber-400' : idx === 1 ? 'text-slate-300' : idx === 2 ? 'text-amber-700' : 'text-slate-600'}`}>
+              <div key={j.id} className="flex items-center justify-between p-4 sm:p-6 bg-slate-800 border border-slate-700 rounded-2xl shadow-lg">
+                <div className="flex items-center gap-4 sm:gap-6">
+                  <span className={`text-2xl sm:text-4xl font-black w-8 sm:w-12 text-center ${idx === 0 ? 'text-amber-400' : idx === 1 ? 'text-slate-300' : idx === 2 ? 'text-amber-700' : 'text-slate-600'}`}>
                     {idx + 1}º
                   </span>
                   {j.foto_url ? (
-                    <img src={j.foto_url} alt={j.nome} className="w-16 h-16 rounded-full object-cover" />
+                    <img src={j.foto_url} alt={j.nome} className="w-12 h-12 sm:w-16 sm:h-16 rounded-full object-cover" />
                   ) : (
-                    <div className="w-16 h-16 bg-slate-700 rounded-full flex items-center justify-center text-2xl font-black text-slate-400">
+                    <div className="w-12 h-12 sm:w-16 sm:h-16 bg-slate-700 rounded-full flex items-center justify-center text-xl sm:text-2xl font-black text-slate-400">
                       {j.nome.charAt(0)}
                     </div>
                   )}
-                  <span className="text-2xl font-bold text-white">{j.nome}</span>
+                  <span className="text-xl sm:text-2xl font-bold text-white truncate">{j.nome}</span>
                 </div>
-                <div className="text-right">
-                  <span className="text-5xl font-black text-emerald-400">{j.pontosTotais}</span>
-                  <span className="text-slate-500 font-bold uppercase tracking-widest ml-2">Pts</span>
+                <div className="text-right shrink-0">
+                  <span className="text-3xl sm:text-5xl font-black text-emerald-400">{j.pontosTotais}</span>
+                  <span className="text-slate-500 font-bold uppercase tracking-widest text-xs sm:text-sm ml-1 sm:ml-2">Pts</span>
                 </div>
               </div>
             ))}
@@ -742,50 +745,50 @@ export default function Home() {
         {/* ================= ABA 4: ESTATÍSTICAS ================= */}
         {abaAtiva === 'estatisticas' && (
           <div className="space-y-8">
-            <h2 className="text-3xl font-black mb-8 text-center text-sky-400 drop-shadow-md">📊 Curiosidades e Estatísticas</h2>
+            <h2 className="text-2xl sm:text-3xl font-black mb-8 text-center text-sky-400 drop-shadow-md">📊 Curiosidades e Estatísticas</h2>
             
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-6xl mx-auto">
               <div className="bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-xl flex items-center gap-6">
-                <div className="text-6xl">👑</div>
+                <div className="text-5xl sm:text-6xl">👑</div>
                 <div>
-                  <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-1">Rei dos Jokers</h3>
-                  <span className="text-2xl font-black text-amber-400">{estatisticas.reiDosJokers}</span>
-                  <p className="text-xs text-slate-500 mt-1">Mais Jokers certos no total.</p>
+                  <h3 className="text-xs sm:text-sm font-bold text-slate-400 uppercase tracking-widest mb-1">Rei dos Jokers</h3>
+                  <span className="text-xl sm:text-2xl font-black text-amber-400">{estatisticas.reiDosJokers}</span>
+                  <p className="text-[10px] sm:text-xs text-slate-500 mt-1">Mais Jokers certos no total.</p>
                 </div>
               </div>
               <div className="bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-xl flex items-center gap-6">
-                <div className="text-6xl">🤝</div>
+                <div className="text-5xl sm:text-6xl">🤝</div>
                 <div>
-                  <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-1">Rei dos Empates</h3>
-                  <span className="text-2xl font-black text-sky-400">{estatisticas.reiDosEmpates}</span>
-                  <p className="text-xs text-slate-500 mt-1">Mais empates (X) acertados no total.</p>
+                  <h3 className="text-xs sm:text-sm font-bold text-slate-400 uppercase tracking-widest mb-1">Rei dos Empates</h3>
+                  <span className="text-xl sm:text-2xl font-black text-sky-400">{estatisticas.reiDosEmpates}</span>
+                  <p className="text-[10px] sm:text-xs text-slate-500 mt-1">Mais empates (X) acertados no total.</p>
                 </div>
               </div>
               <div className="bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-xl flex items-center gap-6">
-                <div className="text-6xl">⭐</div>
+                <div className="text-5xl sm:text-6xl">⭐</div>
                 <div>
-                  <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-1">Equipa D&apos;Ouro</h3>
+                  <h3 className="text-xs sm:text-sm font-bold text-slate-400 uppercase tracking-widest mb-1">Equipa D&apos;Ouro</h3>
                   <div className="flex items-center gap-2 mt-1">
-                    {renderBadge(estatisticas.melhorEquipaJokerNome, 'w-8 h-8')}
-                    <span className="text-2xl font-black text-emerald-400">
+                    {renderBadge(estatisticas.melhorEquipaJokerNome, 'w-6 h-6 sm:w-8 sm:h-8')}
+                    <span className="text-xl sm:text-2xl font-black text-emerald-400">
                       {estatisticas.melhorEquipaJokerPts > 0 ? `${estatisticas.melhorEquipaJokerNome} (+${estatisticas.melhorEquipaJokerPts}pts)` : '-'}
                     </span>
                   </div>
-                  <p className="text-xs text-slate-500 mt-1">A equipa que mais pontuou como Joker.</p>
+                  <p className="text-[10px] sm:text-xs text-slate-500 mt-1">A equipa que mais pontuou como Joker.</p>
                 </div>
               </div>
             </div>
 
             <div className="max-w-6xl mx-auto bg-slate-800 border border-slate-700 rounded-2xl overflow-hidden shadow-2xl mt-8">
               <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse">
+                <table className="w-full text-left border-collapse min-w-[700px]">
                   <thead>
                     <tr className="bg-slate-950 border-b-2 border-slate-700">
-                      <th className="p-4 w-64 font-black text-slate-300 uppercase tracking-widest text-sm"></th>
-                      <th className="p-4 font-black text-amber-400 uppercase tracking-widest text-sm text-center">Jokers</th>
-                      <th className="p-4 font-black text-sky-400 uppercase tracking-widest text-sm text-center">Empates</th>
-                      <th className="p-4 font-black text-emerald-400 uppercase tracking-widest text-sm">🍀 Equipa Talismã</th>
-                      <th className="p-4 font-black text-rose-400 uppercase tracking-widest text-sm">💀 Equipa a apostar contra</th>
+                      <th className="p-4 w-48 sm:w-64 font-black text-slate-300 uppercase tracking-widest text-xs sm:text-sm"></th>
+                      <th className="p-4 font-black text-amber-400 uppercase tracking-widest text-xs sm:text-sm text-center">Jokers</th>
+                      <th className="p-4 font-black text-sky-400 uppercase tracking-widest text-xs sm:text-sm text-center">Empates</th>
+                      <th className="p-4 font-black text-emerald-400 uppercase tracking-widest text-xs sm:text-sm">🍀 Equipa Talismã</th>
+                      <th className="p-4 font-black text-rose-400 uppercase tracking-widest text-xs sm:text-sm">💀 Apostar contra</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-800/50">
@@ -793,29 +796,29 @@ export default function Home() {
                       <tr key={j.id} className="hover:bg-slate-800/50 transition-colors">
                         <td className="p-4 font-bold flex items-center gap-3">
                           {j.foto_url ? (
-                            <img src={j.foto_url} alt={j.nome} className="w-10 h-10 rounded-full object-cover" />
+                            <img src={j.foto_url} alt={j.nome} className="w-8 h-8 sm:w-10 sm:h-10 rounded-full object-cover shrink-0" />
                           ) : (
-                            <div className="w-10 h-10 bg-slate-700 rounded-full flex items-center justify-center font-black text-slate-400">
+                            <div className="w-8 h-8 sm:w-10 sm:h-10 bg-slate-700 rounded-full flex items-center justify-center font-black text-slate-400 shrink-0">
                               {j.nome.charAt(0)}
                             </div>
                           )}
-                          <span className="text-lg">{j.nome}</span>
+                          <span className="text-sm sm:text-lg truncate">{j.nome}</span>
                         </td>
-                        <td className="p-4 text-center font-black text-xl text-amber-500">{j.jokersCertos}</td>
-                        <td className="p-4 text-center font-black text-xl text-sky-400">{j.empatesCertos}</td>
-                        <td className="p-4 font-bold text-emerald-300">
+                        <td className="p-4 text-center font-black text-lg sm:text-xl text-amber-500">{j.jokersCertos}</td>
+                        <td className="p-4 text-center font-black text-lg sm:text-xl text-sky-400">{j.empatesCertos}</td>
+                        <td className="p-4 font-bold text-emerald-300 text-xs sm:text-base">
                           {j.equipaTalismaPts > 0 ? (
                             <div className="flex items-center gap-2">
-                              {renderBadge(j.equipaTalismaNome, 'w-5 h-5')}
-                              <span>{j.equipaTalismaNome} (+{j.equipaTalismaPts}pts)</span>
+                              {renderBadge(j.equipaTalismaNome, 'w-4 h-4 sm:w-5 sm:h-5')}
+                              <span className="truncate">{j.equipaTalismaNome} (+{j.equipaTalismaPts}pts)</span>
                             </div>
                           ) : '-'}
                         </td>
-                        <td className="p-4 font-bold text-rose-300">
+                        <td className="p-4 font-bold text-rose-300 text-xs sm:text-base">
                           {j.equipaApostarContraPts > 0 ? (
                             <div className="flex items-center gap-2">
-                              {renderBadge(j.equipaApostarContraNome, 'w-5 h-5')}
-                              <span>{j.equipaApostarContraNome} (+{j.equipaApostarContraPts}pts)</span>
+                              {renderBadge(j.equipaApostarContraNome, 'w-4 h-4 sm:w-5 sm:h-5')}
+                              <span className="truncate">{j.equipaApostarContraNome} (+{j.equipaApostarContraPts}pts)</span>
                             </div>
                           ) : '-'}
                         </td>
@@ -834,20 +837,20 @@ export default function Home() {
             
             {/* Bloco 1: Gestão de Jornadas e Jogos */}
             <div className="space-y-6">
-              <div className="bg-slate-800 p-8 rounded-2xl border border-slate-700 shadow-xl space-y-4">
-                <h3 className="text-xl font-black text-emerald-400 uppercase tracking-widest">1. Gestão de Jornadas</h3>
+              <div className="bg-slate-800 p-6 sm:p-8 rounded-2xl border border-slate-700 shadow-xl space-y-4">
+                <h3 className="text-lg sm:text-xl font-black text-emerald-400 uppercase tracking-widest">1. Gestão de Jornadas</h3>
                 
                 <div className="flex gap-4">
-                  <input type="number" placeholder="Nº da Jornada" className="flex-1 bg-slate-900 border border-slate-700 p-4 rounded-xl text-lg font-bold focus:border-emerald-500 outline-none" value={novaJornadaNum} onChange={e => setNovaJornadaNum(Number(e.target.value))} />
-                  <button onClick={criarJornada} className="bg-emerald-500 hover:bg-emerald-400 text-slate-900 font-black px-8 py-4 rounded-xl transition">Criar</button>
+                  <input type="number" placeholder="Nº da Jornada" className="flex-1 bg-slate-900 border border-slate-700 p-3 sm:p-4 rounded-xl text-base sm:text-lg font-bold focus:border-emerald-500 outline-none w-full" value={novaJornadaNum} onChange={e => setNovaJornadaNum(Number(e.target.value))} />
+                  <button onClick={criarJornada} className="bg-emerald-500 hover:bg-emerald-400 text-slate-900 font-black px-6 sm:px-8 py-3 sm:py-4 rounded-xl transition">Criar</button>
                 </div>
 
                 {jornadas.length > 0 && (
                   <div className="pt-4 border-t border-slate-700/50">
-                    <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-2">Jornadas Existentes:</span>
+                    <span className="text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider block mb-2">Jornadas Existentes:</span>
                     <div className="flex flex-wrap gap-2">
                       {jornadas.map(j => (
-                        <div key={j.id} className="flex items-center gap-2 bg-slate-900 border border-slate-700 px-3 py-1.5 rounded-lg text-sm font-bold">
+                        <div key={j.id} className="flex items-center gap-2 bg-slate-900 border border-slate-700 px-3 py-1.5 rounded-lg text-xs sm:text-sm font-bold">
                           <span>Jornada {j.numero}</span>
                           <button onClick={() => apagarJornada(j.id, j.numero)} className="text-red-400 hover:text-red-300 ml-1" title="Apagar Jornada">🗑️</button>
                         </div>
@@ -858,10 +861,10 @@ export default function Home() {
               </div>
 
               {jornadaAtiva && (
-                <div className="bg-slate-800 p-8 rounded-2xl border border-slate-700 shadow-xl">
-                  <h3 className="text-xl font-black text-emerald-400 mb-6 uppercase tracking-widest flex justify-between">
+                <div className="bg-slate-800 p-6 sm:p-8 rounded-2xl border border-slate-700 shadow-xl">
+                  <h3 className="text-lg sm:text-xl font-black text-emerald-400 mb-6 uppercase tracking-widest flex justify-between items-center">
                     <span>2. Adicionar Jogo</span>
-                    <span className="text-slate-500">Jornada {jornadaAtiva.numero}</span>
+                    <span className="text-slate-500 text-xs sm:text-base">Jornada {jornadaAtiva.numero}</span>
                   </h3>
                   
                   {/* SELETORES DE EQUIPA - CUSTOMIZADOS */}
@@ -877,7 +880,7 @@ export default function Home() {
                       onChange={setEquipaFora} 
                     />
                     
-                    <button onClick={adicionarJogo} className="w-full bg-emerald-500 hover:bg-emerald-400 text-slate-900 font-black p-4 rounded-xl transition text-lg mt-2 shadow-lg">
+                    <button onClick={adicionarJogo} className="w-full bg-emerald-500 hover:bg-emerald-400 text-slate-900 font-black p-4 rounded-xl transition text-base sm:text-lg mt-2 shadow-lg">
                       + Inserir Jogo na Grelha
                     </button>
                   </div>
@@ -888,11 +891,11 @@ export default function Home() {
             {/* Bloco 2: Marcar Resultados, Edição & Apagar Jogos */}
             <div className="space-y-6">
               
-              <div className="bg-slate-800 p-8 rounded-2xl border border-slate-700 shadow-xl">
-                <h3 className="text-xl font-black text-amber-400 mb-6 uppercase tracking-widest">
+              <div className="bg-slate-800 p-6 sm:p-8 rounded-2xl border border-slate-700 shadow-xl">
+                <h3 className="text-lg sm:text-xl font-black text-amber-400 mb-6 uppercase tracking-widest">
                   🏁 Jogos da Jornada {jornadaAtiva?.numero || '-'}
                 </h3>
-                {jogos.length === 0 ? <p className="text-slate-500 italic">Nenhum jogo nesta jornada.</p> : (
+                {jogos.length === 0 ? <p className="text-slate-500 italic text-sm">Nenhum jogo nesta jornada.</p> : (
                   <div className="space-y-3">
                     {jogos.map(jogo => {
                       const estaEditando = jogoEditId === jogo.id;
@@ -900,50 +903,59 @@ export default function Home() {
                       return (
                         <div key={jogo.id} className="bg-slate-900 p-4 rounded-xl border border-slate-800 space-y-3">
                           {estaEditando ? (
-                            <div className="flex gap-2 items-center w-full">
+                            <div className="flex flex-col sm:flex-row gap-2 items-center w-full">
                               
-                              <div className="flex-1 min-w-0">
+                              <div className="w-full sm:w-auto flex-1 min-w-0">
                                 <SeletorEquipa value={editEquipaCasa} onChange={setEditEquipaCasa} placeholder="Casa" pequeno />
                               </div>
                               
-                              <span className="text-slate-500 text-xs font-black px-1">V</span>
+                              <span className="hidden sm:inline text-slate-500 text-xs font-black px-1">V</span>
                               
-                              <div className="flex-1 min-w-0">
+                              <div className="w-full sm:w-auto flex-1 min-w-0">
                                 <SeletorEquipa value={editEquipaFora} onChange={setEditEquipaFora} placeholder="Fora" pequeno />
                               </div>
 
-                              <button onClick={() => guardarEdicaoJogo(jogo.id)} className="bg-emerald-500 text-slate-950 px-3 py-2 rounded-lg text-sm font-black shadow-md hover:bg-emerald-400">
-                                💾
-                              </button>
-                              <button onClick={() => setJogoEditId(null)} className="bg-slate-800 text-slate-400 px-3 py-2 rounded-lg text-sm font-bold hover:bg-slate-700">
-                                ✕
-                              </button>
+                              <div className="flex gap-2 w-full sm:w-auto justify-end mt-2 sm:mt-0">
+                                <button onClick={() => guardarEdicaoJogo(jogo.id)} className="flex-1 sm:flex-none bg-emerald-500 text-slate-950 px-4 sm:px-3 py-2 rounded-lg text-sm font-black shadow-md hover:bg-emerald-400">
+                                  💾
+                                </button>
+                                <button onClick={() => setJogoEditId(null)} className="flex-1 sm:flex-none bg-slate-800 text-slate-400 px-4 sm:px-3 py-2 rounded-lg text-sm font-bold hover:bg-slate-700">
+                                  ✕
+                                </button>
+                              </div>
                             </div>
                           ) : (
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-2 font-bold text-slate-300">
-                                {renderBadge(jogo.equipa_casa, 'w-6 h-6')}
-                                <span className="hidden sm:inline">{jogo.equipa_casa}</span>
-                                <span className="text-slate-500 text-xs mx-1">v</span>
-                                {renderBadge(jogo.equipa_fora, 'w-6 h-6')}
-                                <span className="hidden sm:inline">{jogo.equipa_fora}</span>
+                            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 sm:gap-0">
+                              <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 font-bold text-slate-300 w-full sm:w-auto">
+                                <div className="flex items-center gap-2">
+                                  {renderBadge(jogo.equipa_casa, 'w-5 h-5 sm:w-6 sm:h-6')}
+                                  <span className="truncate">{jogo.equipa_casa}</span>
+                                </div>
+                                <span className="hidden sm:inline text-slate-500 text-xs mx-1">v</span>
+                                <span className="inline sm:hidden text-slate-600 text-[10px] uppercase ml-7">vs</span>
+                                <div className="flex items-center gap-2">
+                                  {renderBadge(jogo.equipa_fora, 'w-5 h-5 sm:w-6 sm:h-6')}
+                                  <span className="truncate">{jogo.equipa_fora}</span>
+                                </div>
                               </div>
                               
-                              <div className="flex items-center gap-2">
+                              <div className="flex items-center justify-between w-full sm:w-auto gap-2 border-t border-slate-800 sm:border-0 pt-3 sm:pt-0">
                                 <div className="flex gap-1">
                                   {(['1', 'X', '2'] as const).map(res => (
-                                    <button key={res} onClick={() => marcarResultadoFinal(jogo.id, res)} className={`w-9 h-9 rounded-lg font-black text-xs transition ${jogo.resultado_final === res ? 'bg-amber-500 text-slate-900 shadow-lg scale-110' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'}`}>
+                                    <button key={res} onClick={() => marcarResultadoFinal(jogo.id, res)} className={`w-10 h-10 sm:w-9 sm:h-9 rounded-lg font-black text-sm sm:text-xs transition ${jogo.resultado_final === res ? 'bg-amber-500 text-slate-900 shadow-lg scale-110' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'}`}>
                                       {res}
                                     </button>
                                   ))}
                                 </div>
                                 
-                                <button onClick={() => iniciarEdicaoJogo(jogo)} className="text-slate-400 hover:text-white p-2 bg-slate-800 hover:bg-slate-700 rounded-lg transition ml-2" title="Editar Equipas">
-                                  ✏️
-                                </button>
-                                <button onClick={() => apagarJogo(jogo.id)} className="text-red-400 hover:text-red-300 p-2 bg-red-500/10 hover:bg-red-500/20 rounded-lg transition" title="Apagar Jogo">
-                                  🗑️
-                                </button>
+                                <div className="flex gap-1 ml-auto">
+                                  <button onClick={() => iniciarEdicaoJogo(jogo)} className="text-slate-400 hover:text-white p-2 bg-slate-800 hover:bg-slate-700 rounded-lg transition" title="Editar Equipas">
+                                    ✏️
+                                  </button>
+                                  <button onClick={() => apagarJogo(jogo.id)} className="text-red-400 hover:text-red-300 p-2 bg-red-500/10 hover:bg-red-500/20 rounded-lg transition" title="Apagar Jogo">
+                                    🗑️
+                                  </button>
+                                </div>
                               </div>
                             </div>
                           )}
@@ -955,22 +967,22 @@ export default function Home() {
               </div>
 
               {/* Gerir Amigos */}
-              <div className="bg-slate-800 p-8 rounded-2xl border border-slate-700 shadow-xl space-y-6">
-                <h3 className="text-xl font-black text-emerald-400 uppercase tracking-widest">👤 Gerir Amigos do Grupo</h3>
+              <div className="bg-slate-800 p-6 sm:p-8 rounded-2xl border border-slate-700 shadow-xl space-y-6">
+                <h3 className="text-lg sm:text-xl font-black text-emerald-400 uppercase tracking-widest">👤 Gerir Amigos do Grupo</h3>
                 
                 <div className="space-y-4">
-                  <input type="text" placeholder="Nome do Jogador" className="w-full bg-slate-900 border border-slate-700 p-4 rounded-xl text-lg font-bold focus:border-emerald-500 outline-none" value={novoJogadorNome} onChange={e => setNovoJogadorNome(e.target.value)} />
+                  <input type="text" placeholder="Nome do Jogador" className="w-full bg-slate-900 border border-slate-700 p-3 sm:p-4 rounded-xl text-base sm:text-lg font-bold focus:border-emerald-500 outline-none" value={novoJogadorNome} onChange={e => setNovoJogadorNome(e.target.value)} />
                   <input 
                     id="foto-upload"
                     type="file" 
                     accept="image/*"
                     onChange={e => setNovoJogadorFoto(e.target.files?.[0] || null)}
-                    className="w-full bg-slate-900 border border-slate-700 p-4 rounded-xl text-sm font-bold outline-none text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-bold file:bg-emerald-500/20 file:text-emerald-400 hover:file:bg-emerald-500/30 transition cursor-pointer" 
+                    className="w-full bg-slate-900 border border-slate-700 p-3 sm:p-4 rounded-xl text-xs sm:text-sm font-bold outline-none text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs sm:file:text-sm file:font-bold file:bg-emerald-500/20 file:text-emerald-400 hover:file:bg-emerald-500/30 transition cursor-pointer" 
                   />
                   <button 
                     onClick={criarJogador} 
                     disabled={isUploading}
-                    className="w-full bg-emerald-500 hover:bg-emerald-400 text-slate-900 font-black p-4 rounded-xl transition text-lg"
+                    className="w-full bg-emerald-500 hover:bg-emerald-400 text-slate-900 font-black p-3 sm:p-4 rounded-xl transition text-base sm:text-lg"
                   >
                     {isUploading ? 'A guardar foto...' : 'Adicionar Amigo'}
                   </button>
@@ -978,19 +990,19 @@ export default function Home() {
 
                 {jogadores.length > 0 && (
                   <div className="pt-4 border-t border-slate-700/50">
-                    <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-3">Amigos Registados:</span>
+                    <span className="text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider block mb-3">Amigos Registados:</span>
                     <div className="space-y-2">
                       {jogadores.map(j => (
                         <div key={j.id} className="flex items-center justify-between bg-slate-900 p-3 rounded-xl border border-slate-800">
                           <div className="flex items-center gap-3">
                             {j.foto_url ? (
-                              <img src={j.foto_url} alt={j.nome} className="w-8 h-8 rounded-full object-cover" />
+                              <img src={j.foto_url} alt={j.nome} className="w-8 h-8 rounded-full object-cover shrink-0" />
                             ) : (
-                              <div className="w-8 h-8 bg-slate-700 rounded-full flex items-center justify-center font-bold text-slate-300 text-xs">
+                              <div className="w-8 h-8 bg-slate-700 rounded-full flex items-center justify-center font-bold text-slate-300 text-xs shrink-0">
                                 {j.nome[0]}
                               </div>
                             )}
-                            <span className="font-bold text-slate-200">{j.nome}</span>
+                            <span className="font-bold text-slate-200 text-sm sm:text-base truncate">{j.nome}</span>
                           </div>
                           <button onClick={() => apagarJogador(j.id, j.nome)} className="text-red-400 hover:text-red-300 p-2 bg-red-500/10 hover:bg-red-500/20 rounded-lg transition" title="Apagar Jogador">
                             🗑️
@@ -1012,64 +1024,66 @@ export default function Home() {
       {/* ================= MODAL PIN ADMIN ================= */}
       {mostrarPinModal && (
         <div className="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-50 flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-700 rounded-3xl p-8 w-full max-w-md shadow-2xl text-center">
-            <h3 className="text-2xl font-black text-white mb-2">🔒 Acesso Restrito</h3>
-            <p className="text-slate-400 text-sm mb-6">Introduza a palavra-passe do administrador.</p>
+          <div className="bg-slate-900 border border-slate-700 rounded-3xl p-6 sm:p-8 w-full max-w-md shadow-2xl text-center">
+            <h3 className="text-xl sm:text-2xl font-black text-white mb-2">🔒 Acesso Restrito</h3>
+            <p className="text-slate-400 text-xs sm:text-sm mb-6">Introduza a palavra-passe do administrador.</p>
             <input
               type="password"
               placeholder="****"
               value={pinInput}
               onChange={e => setPinInput(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && verificarPin()}
-              className="w-full bg-slate-950 border border-slate-700 p-4 rounded-xl text-center text-2xl font-black tracking-widest mb-6 focus:border-emerald-500 outline-none"
+              className="w-full bg-slate-950 border border-slate-700 p-4 rounded-xl text-center text-xl sm:text-2xl font-black tracking-widest mb-6 focus:border-emerald-500 outline-none"
             />
             <div className="flex gap-4">
-              <button onClick={() => setMostrarPinModal(false)} className="flex-1 bg-slate-800 text-slate-400 font-bold p-4 rounded-xl">Cancelar</button>
-              <button onClick={verificarPin} className="flex-1 bg-emerald-500 text-slate-900 font-black p-4 rounded-xl">Entrar</button>
+              <button onClick={() => setMostrarPinModal(false)} className="flex-1 bg-slate-800 text-slate-400 font-bold p-3 sm:p-4 rounded-xl text-sm sm:text-base">Cancelar</button>
+              <button onClick={verificarPin} className="flex-1 bg-emerald-500 text-slate-900 font-black p-3 sm:p-4 rounded-xl text-sm sm:text-base">Entrar</button>
             </div>
           </div>
         </div>
       )}
 
-      {/* ================= MODAL GIGANTE DE APOSTA ================= */}
+      {/* ================= 📱 MODAL GIGANTE DE APOSTA RESPONSIVO ================= */}
       {jogadorApostar && (
-        <div className="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-50 flex items-center justify-center p-8 overflow-y-auto">
-          <div className="bg-slate-900 border border-slate-700 rounded-3xl p-10 w-full max-w-4xl shadow-2xl relative my-auto">
+        <div className="fixed inset-0 bg-slate-950/95 backdrop-blur-md z-50 flex items-center justify-center p-2 sm:p-8 overflow-y-auto">
+          <div className="bg-slate-900 border border-slate-700 rounded-[2rem] p-6 sm:p-10 w-full max-w-4xl shadow-2xl relative my-auto mt-10 mb-10">
             
-            <button onClick={() => setJogadorApostar(null)} className="absolute top-6 right-6 text-slate-500 hover:text-white font-black text-2xl">✕</button>
+            <button onClick={() => setJogadorApostar(null)} className="absolute top-4 right-4 sm:top-6 sm:right-6 text-slate-500 hover:text-white font-black text-xl sm:text-2xl bg-slate-800 w-10 h-10 rounded-full flex items-center justify-center">✕</button>
 
-            <div className="text-center mb-10 border-b border-slate-800 pb-8">
-              <span className="text-emerald-500 font-black tracking-widest uppercase text-sm">A preencher apostas</span>
-              <h2 className="text-5xl font-black text-white mt-2">{jogadorApostar.nome}</h2>
+            <div className="text-center mb-8 border-b border-slate-800 pb-6">
+              <span className="text-emerald-500 font-black tracking-widest uppercase text-[10px] sm:text-sm">A preencher apostas</span>
+              <h2 className="text-3xl sm:text-5xl font-black text-white mt-1 sm:mt-2 truncate px-4">{jogadorApostar.nome}</h2>
             </div>
 
-            <div className="space-y-4 mb-10">
+            <div className="space-y-3 sm:space-y-4 mb-8">
               {jogos.map(jogo => {
                 const isJoker = jokerJogoId === jogo.id;
                 const palpite = palpitesTemp[jogo.id];
 
                 return (
-                  <div key={jogo.id} className={`flex items-center justify-between p-4 rounded-2xl border-2 transition ${isJoker ? 'bg-amber-900/10 border-amber-500/50' : 'bg-slate-800/50 border-slate-700 hover:border-slate-600'}`}>
+                  <div key={jogo.id} className={`flex flex-col lg:flex-row items-center justify-between p-4 sm:p-5 rounded-2xl border-2 transition gap-4 lg:gap-0 ${isJoker ? 'bg-amber-900/10 border-amber-500/50' : 'bg-slate-800/50 border-slate-700 hover:border-slate-600'}`}>
                     
-                    <div className="flex-1 text-2xl font-bold flex items-center gap-3">
-                      <div className="flex items-center gap-2">
-                        {renderBadge(jogo.equipa_casa, 'w-10 h-10')}
-                        <span className="text-white hidden sm:inline">{jogo.equipa_casa}</span>
+                    {/* Equipas Layout (Em cima no mobile, Lado a lado no PC) */}
+                    <div className="w-full flex lg:flex-1 text-lg sm:text-2xl font-bold items-center justify-center lg:justify-start gap-2 sm:gap-3">
+                      <div className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 text-center w-2/5 lg:w-auto">
+                        {renderBadge(jogo.equipa_casa, 'w-8 h-8 sm:w-10 sm:h-10')}
+                        <span className="text-white text-sm sm:text-xl leading-tight">{jogo.equipa_casa}</span>
                       </div>
-                      <span className="text-slate-600 mx-2 text-lg">vs</span>
-                      <div className="flex items-center gap-2">
-                        {renderBadge(jogo.equipa_fora, 'w-10 h-10')}
-                        <span className="text-white hidden sm:inline">{jogo.equipa_fora}</span>
+                      <span className="text-slate-600 text-sm sm:text-lg">vs</span>
+                      <div className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 text-center w-2/5 lg:w-auto">
+                        {renderBadge(jogo.equipa_fora, 'w-8 h-8 sm:w-10 sm:h-10')}
+                        <span className="text-white text-sm sm:text-xl leading-tight">{jogo.equipa_fora}</span>
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-6">
-                      <div className="flex gap-2 bg-slate-900 p-2 rounded-xl">
+                    {/* Botões de Aposta Layout */}
+                    <div className="flex items-center gap-3 sm:gap-6 w-full lg:w-auto justify-center">
+                      <div className="flex gap-1.5 sm:gap-2 bg-slate-900 p-1.5 sm:p-2 rounded-xl">
                         {(['1', 'X', '2'] as const).map(opcao => (
                           <button
                             key={opcao}
                             onClick={() => setPalpitesTemp(prev => ({ ...prev, [jogo.id]: opcao }))}
-                            className={`w-16 h-16 rounded-lg text-2xl font-black transition-all ${
+                            className={`w-12 h-12 sm:w-16 sm:h-16 rounded-lg text-xl sm:text-2xl font-black transition-all ${
                               palpite === opcao
                                 ? 'bg-emerald-500 text-slate-900 shadow-[0_0_15px_rgba(16,185,129,0.5)] scale-110'
                                 : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
@@ -1082,14 +1096,14 @@ export default function Home() {
 
                       <button
                         onClick={() => setJokerJogoId(jogo.id)}
-                        className={`flex flex-col items-center justify-center w-24 h-[80px] rounded-xl font-black transition-all border-2 ${
+                        className={`flex flex-col items-center justify-center w-16 h-[60px] sm:w-24 sm:h-[80px] rounded-xl font-black transition-all border-2 shrink-0 ${
                           isJoker
                             ? 'bg-amber-500 text-slate-900 border-amber-400 shadow-[0_0_15px_rgba(245,158,11,0.5)] scale-110'
                             : 'bg-slate-900 text-slate-600 border-slate-800 hover:border-slate-600'
                         }`}
                       >
-                        <span className="text-2xl">⭐</span>
-                        <span className="text-[10px] uppercase tracking-widest mt-1">Joker</span>
+                        <span className="text-xl sm:text-2xl">⭐</span>
+                        <span className="text-[8px] sm:text-[10px] uppercase tracking-widest mt-0.5 sm:mt-1">Joker</span>
                       </button>
                     </div>
                   </div>
@@ -1100,7 +1114,7 @@ export default function Home() {
             <button
               onClick={guardarAposta}
               disabled={isSaving}
-              className="w-full bg-emerald-500 hover:bg-emerald-400 text-slate-900 font-black text-2xl py-6 rounded-2xl shadow-xl transition-all active:scale-95 uppercase tracking-widest"
+              className="w-full bg-emerald-500 hover:bg-emerald-400 text-slate-900 font-black text-lg sm:text-2xl py-5 sm:py-6 rounded-2xl shadow-xl transition-all active:scale-95 uppercase tracking-widest sticky bottom-0"
             >
               {isSaving ? 'A guardar...' : '✅ Confirmar Apostas'}
             </button>
