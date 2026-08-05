@@ -582,20 +582,20 @@ export default function Home() {
               <div className="bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-xl flex items-center gap-6">
                 <div className="text-6xl">⭐</div>
                 <div>
-                  <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-1">Equipa D'Ouro</h3>
+                  <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-1">Equipa D&apos;Ouro</h3>
                   <span className="text-2xl font-black text-emerald-400">{estatisticas.melhorEquipaJoker}</span>
                   <p className="text-xs text-slate-500 mt-1">A equipa que mais pontuou como Joker.</p>
                 </div>
               </div>
             </div>
 
-            {/* Tabela de Detalhes Individuais (Com o cabeçalho "Amigo" removido) */}
+            {/* Tabela de Detalhes Individuais */}
             <div className="max-w-6xl mx-auto bg-slate-800 border border-slate-700 rounded-2xl overflow-hidden shadow-2xl mt-8">
               <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse">
                   <thead>
                     <tr className="bg-slate-950 border-b-2 border-slate-700">
-                      <th className="p-4 font-black text-slate-300 uppercase tracking-widest text-sm"></th>
+                      <th className="p-4 w-64 font-black text-slate-300 uppercase tracking-widest text-sm"></th>
                       <th className="p-4 font-black text-amber-400 uppercase tracking-widest text-sm text-center">Jokers</th>
                       <th className="p-4 font-black text-sky-400 uppercase tracking-widest text-sm text-center">Empates</th>
                       <th className="p-4 font-black text-emerald-400 uppercase tracking-widest text-sm">🍀 Equipa Talismã</th>
