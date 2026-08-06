@@ -50,6 +50,7 @@ const JOGADORES_GIF_MAP: Record<string, string> = {
   'Coutinho': '/gifs/coutinho.webp',
   'Craveiro': '/gifs/craveiro.webp',
   'Duarte': '/gifs/duarte.webp',
+  'Lino': '/gifs/lino.webp', // 👈 Adicionar esta linha
   'Miguel': '/gifs/miguel.webp',
   'Oliveira': '/gifs/oliveira.webp',
   'Paulo': '/gifs/paulo.webp',
